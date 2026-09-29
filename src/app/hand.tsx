@@ -1,8 +1,9 @@
+import * as Haptics from 'expo-haptics';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { CARDS_BY_ID, cardPool } from '@/data/cards';
+import { CARDS_BY_ID, cardPool, type CardId } from '@/data/cards';
 import { handSize, isHandComplete, missingCards, nextStep } from '@/flow/steps';
 import { Button } from '@/ui/Button';
 import { cardFamily, cardFamilyLabel, cardValue } from '@/ui/cardDisplay';
@@ -14,11 +15,16 @@ import { Screen } from '@/ui/Screen';
 import { goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, radius, spacing, type } from '@/ui/theme';
+import { Vitrail } from '@/ui/Vitrail';
 
 export default function Hand() {
   const { session, dispatch } = useSession();
   const [confirming, setConfirming] = useState(false);
+  const [selected, setSelected] = useState<CardId | null>(null);
   const primary = useRef<View>(null);
+  const scroll = useRef<ScrollView>(null);
+  const content = useRef<View>(null);
+  const rows = useRef(new Map<CardId, View>());
   const complete = isHandComplete(session);
 
   useEffect(() => {
@@ -31,21 +37,41 @@ export default function Hand() {
   const size = handSize(session);
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const back = () => (session.hand.length > 0 ? setConfirming(true) : leave());
+  const add = (id: CardId) => {
+    dispatch({ type: 'ADD_CARD', id });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  };
+  const focusRow = (index: number) => {
+    const id = session.hand[index];
+    const row = rows.current.get(id);
+    setSelected(id);
+    if (row && content.current) {
+      row.measureLayout(content.current, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - spacing.s) }));
+    }
+  };
 
   const chosen = session.hand.length > 0 && (
     <View style={styles.list}>
       {session.hand.map((id) => {
         const card = CARDS_BY_ID[id];
         return (
-          <SuggestionRow
+          <View
             key={id}
-            name={card.name}
-            family={cardFamily(card)}
-            familyLabel={cardFamilyLabel(card)}
-            value={cardValue(card)}
-            onRemove={() => dispatch({ type: 'REMOVE_CARD', id })}
-            removeLabel={copy.handRemove(card.name)}
-          />
+            ref={(view) => {
+              if (view) rows.current.set(id, view);
+              else rows.current.delete(id);
+            }}
+          >
+            <SuggestionRow
+              name={card.name}
+              family={cardFamily(card)}
+              familyLabel={cardFamilyLabel(card)}
+              value={cardValue(card)}
+              onRemove={() => dispatch({ type: 'REMOVE_CARD', id })}
+              removeLabel={copy.handRemove(card.name)}
+              selected={selected === id}
+            />
+          </View>
         );
       })}
     </View>
@@ -54,31 +80,34 @@ export default function Hand() {
   return (
     <Screen>
       <Header title={copy.handTitle} onBack={back} counter={`${session.hand.length} / ${size}`} />
-      <ScrollView
-        style={styles.flex}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
-        {complete ? (
-          chosen
-        ) : (
-          <CardSearch
-            items={cardPool(mode)}
-            exclude={session.hand}
-            onSelect={(card) => dispatch({ type: 'ADD_CARD', id: card.id })}
-            placeholder={copy.handPlaceholder}
-            noMatch={copy.handNoMatch}
-            familyOf={cardFamily}
-            familyLabelOf={cardFamilyLabel}
-            valueOf={cardValue}
-            whenEmpty={
-              <>
-                {chosen}
-                {session.hand.length > 0 && <Text style={styles.help}>{copy.handMissing(missingCards(session))}</Text>}
-              </>
-            }
-          />
-        )}
+      <Vitrail
+        slots={Array.from({ length: size }, (_, index) => ({ cardId: session.hand[index] }))}
+        emptyHint={copy.handFirstCard}
+        onPanePress={focusRow}
+      />
+      <ScrollView ref={scroll} style={styles.flex} keyboardShouldPersistTaps="handled">
+        <View ref={content} style={styles.content}>
+          {complete ? (
+            chosen
+          ) : (
+            <CardSearch
+              items={cardPool(mode)}
+              exclude={session.hand}
+              onSelect={(card) => add(card.id)}
+              placeholder={copy.handPlaceholder}
+              noMatch={copy.handNoMatch}
+              familyOf={cardFamily}
+              familyLabelOf={cardFamilyLabel}
+              valueOf={cardValue}
+              whenEmpty={
+                <>
+                  {chosen}
+                  {session.hand.length > 0 && <Text style={styles.help}>{copy.handMissing(missingCards(session))}</Text>}
+                </>
+              }
+            />
+          )}
+        </View>
       </ScrollView>
       {complete && (
         <View style={styles.footer}>

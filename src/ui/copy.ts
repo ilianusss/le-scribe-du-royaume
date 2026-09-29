@@ -43,6 +43,11 @@ export const copy = {
   resultCursed: 'Objets maudits',
   resultTiebreak: (n: number) => `Départage : force de base totale ${n}`,
   resultNew: 'Nouvelle main',
+  rankRuins: 'Un royaume en ruines',
+  rankFief: 'Un modeste fief',
+  rankProsperous: 'Un royaume prospère',
+  rankEmpire: 'Un empire redouté',
+  rankLegend: 'Une légende des royaumes',
   resultEdit: 'Modifier la main',
   resultMode: 'Changer de mode',
 };

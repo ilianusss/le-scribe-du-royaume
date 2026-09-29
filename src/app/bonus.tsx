@@ -12,6 +12,7 @@ import { Screen } from '@/ui/Screen';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, radius, spacing, type } from '@/ui/theme';
+import { Vitrail } from '@/ui/Vitrail';
 
 const SOURCE_NAMES = { FR28: 'Nécromancien', CH09: 'Leprechaun', CH06: 'Génie', CH46: 'Portail' } as const;
 
@@ -32,6 +33,12 @@ export default function Bonus() {
   return (
     <Screen>
       <Header title={copy.bonusTitle} onBack={() => goBack(session, 'BONUS')} />
+      <Vitrail
+        slots={[
+          ...session.hand.map((cardId) => ({ cardId })),
+          { cardId: session.bonusCard ?? undefined, dashedColor: colors.lumiere },
+        ]}
+      />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.subtitle}>{subtitle}</Text>
         {bonus ? (
