@@ -278,7 +278,7 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
   };
 }
 
-function cursedValue(id: CursedItemId, context: ScoreContext): CursedTrace {
+export function cursedValue(id: CursedItemId, context: ScoreContext): CursedTrace {
   const others = (context.cursedItems ?? []).filter((other) => other !== id).length;
   switch (id) {
     case 'CH24':
