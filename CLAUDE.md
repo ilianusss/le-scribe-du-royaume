@@ -15,26 +15,43 @@ Score calculator for the card game **Fantasy Realms – Édition Deluxe (French 
 - All player-facing text is French, exactly as in the docs (card names with accents, microcopy table in UI spec §A11).
 ## Stack
  
-- Expo (latest SDK), TypeScript strict, Expo Router, React Native. Targets: iOS, Android **and web**. Keep the app working on web: it is a valid way to test.
+- Expo SDK 57 (React Native 0.86, React 19.2), TypeScript 6 strict, Expo Router. Target: **iOS only** (no Android). Web is kept as a **test target only**: keep `npx expo start --web` working, it is how the flow is checked without a Mac simulator.
 - Styling: `StyleSheet` + the theme tokens in `src/ui/theme.ts`. No UI kit.
 - Graphics: `react-native-svg` (panes, arches, crack, lattice). Icons: `lucide-react-native`.
 - Motion: `react-native-reanimated`, with `useReducedMotion`.
 - Fonts: bundled via `@expo-google-fonts/grenze`, `@expo-google-fonts/grenze-gotisch`, `@expo-google-fonts/alegreya-sans` (no runtime download).
 - Haptics: `expo-haptics` (no-op on web).
 - Tests: Jest with the `jest-expo` preset.
+- Lint: ESLint 9 flat config (`eslint.config.js`, `eslint-config-expo`).
 - Before adding or configuring any library, check its current docs with **context7**. Install Expo-managed packages with `npx expo install`.
+ 
+Installed packages (add nothing else without asking):
+ 
+| Purpose | Packages |
+|---|---|
+| Core | `expo`, `react`, `react-native`, `react-dom` + `react-native-web` (web test target) |
+| Navigation | `expo-router`, `expo-linking`, `expo-constants`, `react-native-screens`, `react-native-safe-area-context` |
+| App shell | `expo-status-bar`, `expo-system-ui`, `expo-splash-screen`, `expo-font` |
+| Graphics / icons | `react-native-svg`, `lucide-react-native` |
+| Motion | `react-native-reanimated`, `react-native-worklets` |
+| Fonts | `@expo-google-fonts/grenze`, `@expo-google-fonts/grenze-gotisch`, `@expo-google-fonts/alegreya-sans` |
+| Haptics | `expo-haptics` |
+| Dev | `typescript`, `@types/react`, `jest`, `jest-expo`, `@types/jest`, `eslint`, `eslint-config-expo` |
 ## Project layout
  
 ```
-app/                 Expo Router screens: _layout, index (Accueil), hand, cursed, bonus, end, result
+src/app/             Expo Router screens only: _layout, index (Accueil), hand, cursed, bonus, end, result (every file here is a route: no tests or helpers)
 src/data/            cards.ts, cursedItems.ts — typed data transcribed from the reference doc §5 and §8
 src/engine/          pure TypeScript scoring engine + optimiser + rulings.ts (no React / RN imports)
 src/engine/__tests__ acceptance tests (reference doc §10) and data sanity tests
 src/search/          name normalisation and suggestion ranking (pure, tested)
 src/flow/            session reducer and step guards (pure, tested)
 src/ui/              theme.ts and shared components (Pane, Vitrail, CardSearch, SuggestionRow, Stepper…)
+assets/images/       app/ (icon, splash, favicon), cards/<famille>/, objets-maudits/ — expected file names in assets/images/images.txt
 docs/                the two specs
 ```
+ 
+Imports use the `@/*` alias for `src/*` (e.g. `@/engine/score`).
  
 ## Commands
  

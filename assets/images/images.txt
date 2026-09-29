@@ -1,0 +1,127 @@
+Images attendues — Le Scribe du Royaume
+=======================================
+
+Format : PNG. Nom de fichier = <ID>-<nom sans accents>.png (l'ID est celui du document de référence).
+Un fichier absent n'est pas une erreur : l'app utilise une image par défaut.
+  - app/ : les fichiers actuels sont les images par défaut d'Expo ; remplace-les en gardant le même nom.
+  - cards/ et objets-maudits/ : sans image, l'app affiche l'icône de la famille (UI spec §B5).
+
+assets/images
+├── images.txt
+├── app
+│   ├── icon.png            icône iOS, 1024 × 1024, sans transparence
+│   ├── splash-icon.png     logo de l'écran de lancement (fond #17142B)
+│   └── favicon.png         icône de l'onglet (web, test uniquement)
+├── cards
+│   ├── terrain         Terrain
+│   │   ├── FR01-montagne.png
+│   │   ├── FR02-caverne.png
+│   │   ├── FR03-beffroi.png
+│   │   ├── FR04-foret.png
+│   │   ├── FR05-elemental-de-terre.png
+│   │   └── CH05-jardin.png
+│   ├── vague           Vague
+│   │   ├── FR06-source-de-vie.png
+│   │   ├── FR07-marecage.png
+│   │   ├── FR08-inondation.png
+│   │   ├── FR09-ile.png
+│   │   └── FR10-elemental-d-eau.png
+│   ├── climat          Climat
+│   │   ├── FR11-orage.png
+│   │   ├── FR12-blizzard.png
+│   │   ├── FR13-fumee.png
+│   │   ├── FR14-tornade.png
+│   │   └── FR15-elemental-d-air.png
+│   ├── flamme          Flamme
+│   │   ├── FR16-feu-de-foret.png
+│   │   ├── FR17-chandelle.png
+│   │   ├── FR18-forge.png
+│   │   ├── FR19-eclair.png
+│   │   └── FR20-elemental-de-feu.png
+│   ├── armee           Armée
+│   │   ├── FR21-chevaliers.png
+│   │   ├── FR22-archers-elfes.png
+│   │   ├── FR23-cavalerie-legere.png
+│   │   ├── FR24-infanterie-naine.png
+│   │   └── FR25-eclaireurs.png
+│   ├── sorcier         Sorcier
+│   │   ├── FR26-collectionneur.png
+│   │   ├── FR27-dresseur.png
+│   │   ├── FR28-necromancien.png
+│   │   ├── FR29-demoniste.png
+│   │   ├── FR30-enchanteresse.png
+│   │   └── FR54-bouffon.png
+│   ├── seigneur        Seigneur
+│   │   ├── FR31-roi.png
+│   │   ├── FR32-reine.png
+│   │   ├── FR33-princesse.png
+│   │   ├── FR34-chef-de-guerre.png
+│   │   └── FR35-imperatrice.png
+│   ├── creature        Créature
+│   │   ├── FR36-licorne.png
+│   │   ├── FR37-basilic.png
+│   │   ├── FR38-destrier.png
+│   │   ├── FR39-dragon.png
+│   │   ├── FR40-hydre.png
+│   │   └── FR55-phenix.png
+│   ├── arme            Arme
+│   │   ├── FR41-navire-de-guerre.png
+│   │   ├── FR42-baguette-magique.png
+│   │   ├── FR43-epee-de-keth.png
+│   │   ├── FR44-arc-elfique.png
+│   │   └── FR45-dirigeable.png
+│   ├── artefact        Artefact
+│   │   ├── FR46-bouclier-de-keth.png
+│   │   ├── FR47-gemme-de-loi.png
+│   │   ├── FR48-arbre-monde.png
+│   │   ├── FR49-livre-des-mutations.png
+│   │   └── FR50-rune-de-protection.png
+│   ├── joker           Joker
+│   │   ├── FR51-metamorphe.png
+│   │   ├── FR52-mirage.png
+│   │   └── FR53-doppelganger.png
+│   ├── batiment        Bâtiment ☠
+│   │   ├── CH16-beffroi.png
+│   │   ├── CH01-donjon.png
+│   │   ├── CH02-chateau.png
+│   │   ├── CH03-crypte.png
+│   │   └── CH04-chapelle.png
+│   ├── exterieur       Extérieur ☠
+│   │   ├── CH06-genie.png
+│   │   ├── CH07-juge-des-ames.png
+│   │   ├── CH08-ange.png
+│   │   ├── CH09-leprechaun.png
+│   │   └── CH10-demon.png
+│   └── mort-vivant     Mort-vivant ☠
+│       ├── CH11-reine-des-tenebres.png
+│       ├── CH12-goule.png
+│       ├── CH13-spectre.png
+│       ├── CH14-liche.png
+│       └── CH15-chevalier-de-la-mort.png
+└── objets-maudits
+    ├── CH24-longue-vue.png
+    ├── CH25-sarcophage.png
+    ├── CH26-bandeau.png
+    ├── CH27-livre-des-propheties.png
+    ├── CH28-boule-de-cristal.png
+    ├── CH29-charette-de-marchand.png
+    ├── CH30-sac-a-dos.png
+    ├── CH31-pelle.png
+    ├── CH32-chambre-forte.png
+    ├── CH33-lunettes-de-cristal.png
+    ├── CH34-gants-de-voleur.png
+    ├── CH35-plan-de-la-decharge.png
+    ├── CH36-bottes-ailees.png
+    ├── CH37-baton-de-transmutation.png
+    ├── CH38-rateau.png
+    ├── CH39-coffre-au-tresor.png
+    ├── CH40-hamecon.png
+    ├── CH41-couteau-nain.png
+    ├── CH42-sablier.png
+    ├── CH43-miroir-dore.png
+    ├── CH44-chaudron.png
+    ├── CH45-lanterne.png
+    ├── CH46-portail.png
+    └── CH47-anneau-de-souhait.png
+
+17 dossiers, 71 cartes + 24 objets maudits + 3 images de l'app
