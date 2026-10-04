@@ -183,19 +183,32 @@ function scoreHand(handCards, choices, ctx):
 Official guidance ✅: *"appliquez tous les malus, en commençant par les cartes qui ne sont pas masquées par d'autres cartes."* Implementation (same as the reference implementation):
 
 1. `blankers` = active (not masked in step 4), non-cleared cards whose malus says "MASQUE …" (Inondation, Orage, Blizzard, Feu de forêt, Basilic, Crypte, and any Doppelgänger that copied one of them).
-2. For each blanker `b` and each other card `t`: edge `b → t` if `b`'s rule targets `t` and `t` is not protected (step 3).
+2. For each blanker `b` and each card `t`, **including `b` itself**: edge `b → t` if `b`'s rule targets `t` and `t` is not protected (step 3). A rule that says « autre(s) » never targets its own card (the Basilic's « toutes les autres Créatures »).
 3. `isMasked(t, stack)`:
    - no incoming edge → `false`;
    - for each blanker `b → t`:
-     - if `t → b` also exists (mutual blanking) → `true`;
+     - if `t → b` also exists (mutual blanking; a self-edge `t → t` counts as mutual) → `true`;
      - if `b` is already in `stack` (cycle) → `true` ⚠️ (community interpretation: cycles mask every card in the cycle);
      - if `not isMasked(b, stack + [b])` → `true` (an active blanker masks `t`);
    - otherwise → `false`.
 4. Compute `isMasked(t, [t])` for every card first, **then** apply all results at once.
 
-### 4.2 Choice cards — the app must optimise ⚠️ (product decision)
+**Self-masking** ✅ (verified against the reference implementation). A « MASQUE toutes les X » rule also targets its own card when that card matches X, unless the text says « autre(s) ». The self-edge counts as mutual masking: the card is masked, and like any masked blanker its rule then masks nothing else. This can only happen after a family change by the Livre des mutations:
+- Blizzard → Vague;
+- Orage → Flamme;
+- Inondation → Armée, Terrain, Flamme or ☠ Bâtiment;
+- Crypte → Seigneur;
+- Feu de forêt → any family outside its exceptions.
 
-Several cards require a player choice. Players always pick the best option, so the app should **search all options and keep the maximum score**, show which options it chose, and let the user override.
+See tests 65 and 66 (§10.4).
+
+### 4.2 Choice cards ⚠️ (product decision)
+
+Several cards require a player choice. **The player makes every choice in the app; the app never optimises** (a non-optimal choice is the player's responsibility).
+- **Jokers (Doppelgänger, Mirage, Métamorphe): the player chooses** in the app (UI spec §A7b) which card each joker copies, or « Ne copie rien ». Only named cards of the joker's eligible families are offered (no "generic family" copy in the app). The engine takes these choices as input.
+- **Livre des mutations: the player chooses** in the app (UI spec §A7c) which other card changes family and into which family, or « Ne change rien ». The engine takes this choice as input.
+- **Île: the player chooses** in the app (UI spec §A7d) which Vague or Flamme has its malus cleared, or « N'efface rien ». The step is skipped when no other card is a Vague or a Flamme (after the jokers and the Livre).
+- **Ange: the player chooses** in the app (UI spec §A7e) which other card is protected, or « Ne protège rien ».
 
 | Card | Option space |
 |---|---|
@@ -206,7 +219,7 @@ Several cards require a player choice. Players always pick the best option, so t
 | Île | any VAGUE or FLAMME card in hand, or none |
 | Ange | any other card in hand, or none |
 
-Performance: a naive Cartesian product can reach ~10⁶ evaluations. Prune: for Mirage/Métamorphe, only consider names referenced by other cards in hand + one generic card per eligible family + "none"; for Livre des mutations, only families that some card in hand references (plus the target's own family); skip Île/Ange when there is nothing to clear/protect. Evaluate a single hand in well under a second on mobile.
+The table describes what the player may choose. The Livre's family also excludes the target's current family, which would change nothing. Île's targets are judged on families after the jokers and the Livre (step 1).
 
 Cards that add an extra card (Nécromancien, Leprechaun, Génie, cursed item Portail) require **no choice** from the engine: the user enters the final hand including the extra card. The app may validate that a card added by the Nécromancien belongs to an eligible family.
 
@@ -373,7 +386,7 @@ These cards score from the **discard area**. The app must let the user enter the
 | CH14 | Liche | Lich | 13 | BONUS : +10 pour le Nécromancien et pour chaque autre Mort-vivant. Les Morts-vivants ne peuvent pas être MASQUÉS. | bonus = `(hasName(Nécromancien) ? 10 : 0) + 10*countOther(MORT_VIVANT)`. Protection: MORT_VIVANT unmaskable. |
 | CH15 | Chevalier de la Mort | Death Knight | 14 | BONUS : +7 pour chaque Arme et Armée dans la zone de défausse. | bonus = `7*(disc(ARME)+disc(ARMEE))`. |
 
-⚠️ Phénix in the discard area: default = counts only as CREATURE (printed family, reference implementation). RAW could argue it also counts as Flamme/Climat for the Reine des Ténèbres. Keep configurable.
+Phénix in the discard area: the app asks family counts (UI spec §A8), so the player counts a Phénix as a Créature only (its printed family).
 
 ---
 
@@ -459,7 +472,10 @@ Names 🟡 (except the 3 ✅), values 🟡 (verify on cards). Timing: *N'IMPORTE
 |---|---|---|
 | Mode toggles | always | Recommended: two toggles, **Familles supplémentaires** and **Objets maudits** (the Deluxe rules allow each independently), plus **Cartes promo** (on by default for Deluxe owners). A preset selector "Base / Trésor maudit complet" can hide the toggles for most users. |
 | Hand (7–9 cards) | always | Card picker with accent-insensitive search ("elementa" → Élémental…), grouped by family with family colours. Only show cards of the active mode (e.g. the right Beffroi). |
-| Choices for joker/Livre/Île/Ange | optional | Auto-optimised by default; user can override (house rule, or to reproduce what was declared at the table). |
+| Joker copies (Doppelgänger, Mirage, Métamorphe) | if a joker is in the final hand | Chosen by the player: a named card of the eligible families, or « Ne copie rien » (§4.2). |
+| Livre des mutations | if the Livre is in the final hand | Chosen by the player: another card (not the Phénix) and a new family (not Joker), or « Ne change rien » (§4.2). |
+| Île | if the Île is in the final hand and another card is a Vague or a Flamme | Chosen by the player, or « N'efface rien » (§4.2). |
+| Ange | if the Ange is in the final hand | Chosen by the player, or « Ne protège rien » (§4.2). |
 | Discard area | only if a Mort-vivant is in hand | Multi-select of cards not in the hand. Hide the input otherwise. |
 | Player count | if Génie or Longue-vue | Ask once per game session. |
 | Face-down cursed items | if Objets maudits enabled | Multi-select of items. |
@@ -592,6 +608,13 @@ All tests verified against the reference implementation (except the ⚠️ case 
 | 63 | Roi, Reine, Chevaliers + face-down: Coffre au trésor, Longue-vue, Sarcophage, Portail | 4 players | 78 | Coffre +25 with 3 others |
 | 64 | Roi, Reine, Chevaliers + face-down: Coffre au trésor, Longue-vue, Sarcophage | 2 players | 64 | Coffre without bonus, Longue-vue −10 |
 
+### 10.4 Self-masking (§4.1)
+
+| # | Hand | Choices | Expected | What it checks |
+|---|---|---|---|---|
+| 65 | Blizzard, Livre des mutations, Élémental d'Eau | Livre: Blizzard → Vague | 7 | The Blizzard masks itself; masked, it no longer masks the Élémental d'Eau |
+| 66 | Feu de forêt, Livre des mutations, Roi | Livre: Feu de forêt → Créature | 11 | The Feu de forêt masks itself; the Roi survives |
+
 ---
 
 ## 11. Suggested build plan for the agent
@@ -599,6 +622,5 @@ All tests verified against the reference implementation (except the ⚠️ case 
 1. Encode the card data (§5, §8) as JSON; encode per-card logic in a registry keyed by ID.
 2. Implement the engine exactly as §4 with a per-card trace (for the breakdown UI and for debugging).
 3. Run all tests of §10 as automated unit tests before any UI work.
-4. Add the choice optimiser (§4.2) with pruning; re-run tests with **auto** choices and assert the score is ≥ the forced-choice score (except test 12, which uses deliberately bad choices).
-5. Build the UI (§9): mode presets, card picker, conditional inputs, breakdown.
-6. Keep all ⚠️ rulings behind a small config object so the product owner can switch them.
+4. Build the UI (§9): mode presets, card picker, conditional inputs, breakdown.
+5. Keep all ⚠️ rulings behind a small config object so the product owner can switch them.

@@ -12,22 +12,26 @@
 
 1. **Typing is the fastest input.** Players know their card names. One text field, instant suggestions, Enter to pick.
 2. **Ask only what the score needs.** Extra questions (bonus card, cursed items, discard, player count) appear only when a card in the hand requires them.
-3. **Never ask the player to resolve an effect.** Joker copies, Livre des mutations, Île and Ange are optimised automatically by the engine (reference doc §4.2); the result explains what was chosen.
+3. **Ask only the choices a player declares at the table.** The player says which card each joker (Doppelgänger, Mirage, Métamorphe) copies (§A7b) what the Livre des mutations changes (§A7c), which card the Île clears (§A7d) and which card the Ange protects (§A7e). The app never optimises a choice (reference doc §4.2); the result shows each choice.
 4. **One screen, one job.** Linear flow, a back arrow on every step, no menus.
 5. **Mobile first, one hand, at the game table.** Works offline. Works on a phone held in one hand with the keyboard open.
 
 ## A2. Mode mapping
 
-The two home buttons map to the engine modes of the reference doc (§1.1):
+The home buttons and the extension modules (screen 1a) map to the engine modes of the reference doc (§1.1):
 
-| Button | Engine mode | Hand size | Promo cards (Bouffon, Phénix) |
-|---|---|---|---|
-| **Jeu de base** | Base | 7 | Included |
-| **Extension** | Trésor maudit complet (extra families + cursed items) | 8 | Included |
+| Choice | Engine mode | Hand size | Extra families (☠ text active) | Cursed items |
+|---|---|---|---|---|
+| **Jeu de base** | `BASE` | 7 | No | No |
+| **Extension → Objets maudits** | `CURSED` | 7 | No | Yes |
+| **Extension → Familles supplémentaires** | `FAMILIES` | 8 | Yes | No |
+| **Extension → Les deux** | `FULL` (Trésor maudit complet) | 8 | Yes | Yes |
+
+Promo cards (Bouffon, Phénix) are included in every mode.
 
 Card pool per mode:
-- *Jeu de base*: the 53 base cards + Bouffon + Phénix. The Beffroi is the **Terrain** version.
-- *Extension*: the above + Jardin + Bâtiments + Extérieurs + Morts-vivants; the Beffroi is the **Bâtiment** version (the Terrain one is removed). Both are named "Beffroi", so only one ever appears in suggestions.
+- Without the extra families (`BASE`, `CURSED`): the 53 base cards + Bouffon + Phénix. The Beffroi is the **Terrain** version.
+- With the extra families (`FAMILIES`, `FULL`): the above + Jardin + Bâtiments + Extérieurs + Morts-vivants; the Beffroi is the **Bâtiment** version (the Terrain one is removed). Both are named "Beffroi", so only one ever appears in suggestions.
 
 ## A3. Flow
 
@@ -35,11 +39,24 @@ Card pool per mode:
                 ┌──────────────┐
                 │  1. Accueil  │  Jeu de base │ Extension
                 └──────┬───────┘
-                       ▼
+          Extension?   │
+          ┌────yes─────┤
+          ▼            │ no
+ ┌──────────────────┐  │
+ │ 1a. Le Trésor    │  │  Familles supplémentaires │ Objets maudits │ Les deux
+ │     maudit       │  │
+ └────────┬─────────┘  │
+          └─────┬──────┘
+                ▼
+                ┌──────────────┐
+                │ 1b. Que veux-│  Une main │ Une partie (+ 2..6 joueurs)
+                │  tu compter ?│
+                └──────┬───────┘
+                       ▼   (une partie: steps 2 → 6 once per player, then 7)
                 ┌──────────────┐
                 │  2. Ta main  │  7 or 8 cards
                 └──────┬───────┘
-          Extension?   │
+     Objets maudits?   │
           ┌────yes─────┤
           ▼            │ no
  ┌──────────────────┐  │
@@ -47,7 +64,7 @@ Card pool per mode:
  └────────┬─────────┘  │
           └─────┬──────┘
                 ▼
-     Bonus card source in hand?  (Nécromancien; Extension also: Leprechaun, Génie, Portail)
+     Bonus card source in hand?  (Nécromancien; extra families: Leprechaun, Génie; cursed items: Portail)
           ┌───yes───┐
           ▼         │ no
  ┌──────────────────┐│
@@ -55,7 +72,40 @@ Card pool per mode:
  └────────┬─────────┘│
           └────┬─────┘
                ▼
-     Context needed? (Extension only: Génie/Longue-vue → players; Undead → discard)
+     Joker in the final hand?  (Doppelgänger, Mirage, Métamorphe)
+          ┌───yes───┐
+          ▼         │ no
+ ┌──────────────────┐│
+ │ 4b. Jokers       ││  one copy (or none) per joker
+ └────────┬─────────┘│
+          └────┬─────┘
+               ▼
+     Livre des mutations in the final hand?
+          ┌───yes───┐
+          ▼         │ no
+ ┌──────────────────┐│
+ │ 4c. Livre des    ││  one card → one family (or none)
+ │     mutations    ││
+ └────────┬─────────┘│
+          └────┬─────┘
+               ▼
+     Île in the final hand, with another Vague or Flamme?
+          ┌───yes───┐
+          ▼         │ no
+ ┌──────────────────┐│
+ │ 4d. Île          ││  one card cleared (or none)
+ └────────┬─────────┘│
+          └────┬─────┘
+               ▼
+     Ange in the final hand?
+          ┌───yes───┐
+          ▼         │ no
+ ┌──────────────────┐│
+ │ 4e. Ange         ││  one card protected (or none)
+ └────────┬─────────┘│
+          └────┬─────┘
+               ▼
+     Context needed? (Génie/Longue-vue → players; Undead → discard)
           ┌───yes───┐
           ▼         │ no
  ┌──────────────────┐│
@@ -64,30 +114,51 @@ Card pool per mode:
           └────┬─────┘
                ▼
         ┌──────────────┐
-        │ 6. Résultat  │  Nouvelle main │ Modifier la main │ Changer de mode
+        │ 6. Résultat  │  Une main: Nouvelle main │ Modifier la main │ Changer de mode
+        └──────┬───────┘  Une partie: Joueur suivant / Voir le classement │ Modifier la main │ Abandonner la partie
+               ▼ (une partie, after the last player)
+        ┌──────────────┐
+        │ 7. Classement│  Nouvelle partie │ Changer de mode
         └──────────────┘
 ```
 
-Steps 3, 4 and 5 are **conditional**. The step counter in the header only counts the steps that apply to the current hand (recompute it when the hand changes).
+Steps 3, 4, 4b, 4c, 4d, 4e and 5 are **conditional**. The step counter in the header only counts the steps that apply to the current hand (recompute it when the hand changes).
 
 ### State model
 
 ```ts
-type Mode = 'BASE' | 'EXTENSION';
+type Mode = 'BASE' | 'CURSED' | 'FAMILIES' | 'FULL';
 
 interface ScoringSession {
   mode: Mode | null;
   hand: CardId[];               // ordered by entry
-  cursedItems: CursedItemId[];  // face-down items (Extension)
+  cursedItems: CursedItemId[];  // face-down items (Objets maudits module)
   bonusCard: CardId | null;     // Nécromancien / Leprechaun / Génie / Portail
   bonusSkipped: boolean;        // player explicitly chose "Aucune"
+  jokerChoices: Partial<Record<JokerId, CardId | 'NONE'>>; // one answer per joker in the final hand
+  bookChoice: { target: CardId; family: Family } | 'NONE' | null; // Livre des mutations
+  islandChoice: CardId | 'NONE' | null; // Île
+  angelChoice: CardId | 'NONE' | null;  // Ange
   playerCount: number | null;   // 2..6, only if needed
   discardCounts: Partial<Record<Family, number>> & { licorne?: boolean }; // only if needed
-  result: ScoreResult | null;
+  game: GameContext | null;     // une partie only
 }
+
+interface GameContext {          // what the current player inherits from the previous ones
+  playerCount: number;           // known for the whole game: never asked again
+  unavailableCards: CardId[];    // final hands of previous players (every card is unique)
+  unavailableCursed: CursedItemId[];
+  discard: DiscardCounts;        // last discard counts entered (the discard area is shared)
+}
+
+interface Game { mode: Mode; playerCount: number; names: string[]; finished: ScoringSession[] } // current player = finished.length + 1; '' = no name
 ```
 
-Implement the flow as a small state machine (`MODE → HAND → CURSED? → BONUS? → CONTEXT? → RESULT`). A step's guard decides whether it is shown; going **back** from a step returns to the previous *shown* step. Editing the hand invalidates later answers only if they no longer apply (e.g. removing the Nécromancien clears `bonusCard`).
+The result is computed from the session (it is not stored).
+
+Implement the flow as a small state machine (`MODE → HAND → CURSED? → BONUS? → JOKERS? → BOOK? → ISLAND? → ANGEL? → CONTEXT? → RESULT`). A step's guard decides whether it is shown; going **back** from a step returns to the previous *shown* step. Editing the hand invalidates later answers only if they no longer apply (e.g. removing the Nécromancien clears `bonusCard`; removing a joker, or the card a Doppelgänger copies, clears that joker's answer; removing the Livre or its target card clears `bookChoice`; the Île or Ange answer is cleared when its card or its target leaves the hand, or when the Île's target is no longer a Vague or a Flamme).
+
+**Une partie**: players are « Joueur 1 » … « Joueur N », or the names entered on screen 1b (optional). Each player goes through steps 2 → 6 with a fresh session built from the `GameContext`. Going back from a player's hand (after a confirmation if cards were entered) returns to the previous player's result with their answers kept.
 
 No persistence is required. Optional nicety: remember the last mode in `localStorage` (wrap in try/catch).
 
@@ -123,6 +194,35 @@ Behaviour:
 - Keyboard: Tab between them, Enter/Space to select.
 
 ---
+
+## A4b. Screen 1b — Que veux-tu compter ?
+
+**Job**: one hand at a time, or a whole game.
+
+- Header « Que veux-tu compter ? » with a back arrow to Accueil.
+- Two arched windows, same component as Accueil: « Une main » / « Calcule une main à la fois » (hand icon) and « Une partie » / « Compte la main de chaque joueur et désigne le gagnant » (players icon).
+- « Une main » goes straight to screen 2.
+- « Une partie » highlights its window and shows « Nombre de joueurs » (segmented control 2–6, no default). Once a count is picked:
+  - a switch « Saisir les noms des joueurs » (off by default);
+  - when on, one text field per player (placeholder « Joueur {n} », capitalised words, 20 characters max, « suivant » on the keyboard moves to the next field); an empty field keeps « Joueur {n} »;
+  - the primary button « Commencer la partie ».
+
+**During a game**:
+- The header shows « Joueur {n} sur {N} » above the screen title, or « {Nom} · {n} sur {N} » when the player has a name. Names replace « Joueur {n} » everywhere (ranking, read-only result).
+- The player count is known: the Génie and the Longue-vue never ask it, and screen 5 is skipped when it has nothing else to ask.
+- Cards and cursed items already in a previous player's final hand are not suggested (each card is unique).
+- The discard counts on screen 5 start from the last counts entered in the game.
+
+## A4a. Screen 1a — Le Trésor maudit (after « Extension »)
+
+**Job**: pick the expansion modules played (reference doc §1.1).
+
+- Header « Le Trésor maudit » with a back arrow to Accueil; question « Avec quoi joues-tu ? ».
+- Three rows in one list (same style as suggestion rows: colour bar, icon, title in the heading font, sub-line, chevron):
+  - « Familles supplémentaires » / « Bâtiments, Extérieurs et Morts-vivants · 8 cartes » (Bâtiment bar and icon) → `FAMILIES`;
+  - « Objets maudits » / « 7 cartes » (poison bar, key icon) → `CURSED`;
+  - « Les deux » / « Le Trésor maudit complet · 8 cartes » (`--lumiere` bar, skull icon) → `FULL`.
+- Tapping a row sets the mode and goes to screen 1b.
 
 ## A5. Screen 2 — Ta main (the core screen)
 
@@ -178,21 +278,22 @@ Behaviour:
 
 ### Completion
 
-- Hand size: 7 (Jeu de base) or 8 (Extension). The counter shows `n / 7` or `n / 8`.
-- Button « Compter les points » appears when the count is reached. It moves to the next *shown* step (cursed items, bonus card, context) or directly to the result. On the last step the label stays « Compter les points »; on intermediate steps it is « Continuer ».
+- Hand size: 7 without the extra families (`BASE`, `CURSED`), 8 with them (`FAMILIES`, `FULL`). The counter shows `n / 7` or `n / 8`.
+- The primary button appears when the count is reached. It moves to the next *shown* step (cursed items, bonus card, jokers, context) or directly to the result. Its label follows the rule in §A10.
 - Back arrow → Accueil (asks for confirmation only if at least one card was entered: « Abandonner cette main ? » Oui / Non).
 
 ---
 
-## A6. Screen 3 — Objets maudits (Extension only)
+## A6. Screen 3 — Objets maudits (Objets maudits module only)
 
 **Job**: list the cursed items turned face down.
 
 Same layout and component as screen 2, with:
 - Title « Objets maudits », helper text: « Ajoute les objets retournés face cachée. L'objet encore face visible ne compte pas. »
+- Placeholder « Tape le nom d'un objet »; no match → « Aucun objet ne correspond à « {q} » ».
 - Suggestions from the 24 cursed items; the right column shows the face-down value (e.g. `−20`, `+5`).
 - No fixed count, no vitrail (show a simple running total instead: « Total des objets : −23 »).
-- Two actions always visible: « Aucun objet » (secondary, only when the list is empty) and « Continuer » (primary, when ≥ 1 item). Both advance.
+- Two actions always visible: « Aucun objet » (secondary, only when the list is empty) and the primary button (when ≥ 1 item), labelled per §A10. Both advance.
 
 ---
 
@@ -202,23 +303,63 @@ Shown if the hand contains a **bonus source**:
 
 | Source | Mode | Where the extra card comes from | Eligible cards |
 |---|---|---|---|
-| Nécromancien | both | discard | Armée, Seigneur, Sorcier, Créature (+ Mort-vivant in Extension) |
-| Leprechaun | Extension | top of the draw pile | any |
-| Génie | Extension | draw pile | any |
-| Portail (cursed item) | Extension | kept an extra card | any |
+| Nécromancien | all | discard | Armée, Seigneur, Sorcier, Créature (+ Mort-vivant with the extra families) |
+| Leprechaun | extra families | top of the draw pile | any |
+| Génie | extra families | draw pile | any |
+| Portail (cursed item) | cursed items | kept an extra card | any |
 
-Rules (reference doc §1.2): the hand can gain **at most one** extra card (8 max in Jeu de base, 9 max in Extension). So this screen asks for **one** card, never more.
+Rules (reference doc §1.2): the hand can gain **at most one** extra card (8 max without the extra families, 9 max with them). So this screen asks for **one** card, never more.
 
 Behaviour:
 - Title: « Carte bonus ». Subtitle names the source(s) in the hand, e.g. « Tu as le Nécromancien : quelle carte as-tu récupérée dans la défausse ? » or « Tu as le Leprechaun : quelle carte as-tu piochée ? ». If several sources: « Carte supplémentaire (Nécromancien, Génie) ».
 - Same input component, single selection. Eligible pool: if the **only** source is the Nécromancien → Nécromancien families only; otherwise any card of the mode. Cards already in hand are excluded.
-- After selecting: show the card, a « Changer » link, and « Continuer ».
+- After selecting: show the card, a « Changer » link, and the primary button labelled per §A10.
 - « Pas de carte bonus » (secondary) skips — taking the card is optional.
 - The vitrail on this screen shows the full hand plus one extra dashed pane.
 
 ---
 
-## A8. Screen 5 — Fin de partie (conditional, Extension only)
+## A7b. Screen 4b — Jokers (conditional)
+
+Shown if the final hand (bonus card included) contains a Doppelgänger, a Mirage or a Métamorphe. The player declares what each joker copies, as at the table.
+
+- Title « Jokers ». The vitrail shows the final hand; a joker's pane takes the colour and icon of the copied card once chosen.
+- One block per joker in the hand, heading « Le Doppelgänger copie : », « Le Mirage copie : », « Le Métamorphe copie : ».
+- **Doppelgänger**: the other cards of the final hand as tappable rows (name, family, strength).
+- **Mirage / Métamorphe**: the same input component as screen 2, limited to named cards of the joker's eligible families in the mode's pool (reference doc §5.12):
+  - Mirage: Terrain, Armée, Climat, Vague, Flamme (+ Bâtiment with the extra families).
+  - Métamorphe: Artefact, Seigneur, Sorcier, Arme, Créature (+ Mort-vivant with the extra families).
+  - No "family only" copy.
+- Each block also offers a secondary chip « Ne copie rien » (the joker stays a Joker).
+- After an answer: show the chosen card (or « Ne copie rien ») with a « Changer » link.
+- The primary button (label per §A10) is shown once every joker has an answer.
+
+## A7c. Screen 4c — Livre des mutations (conditional)
+
+Shown if the final hand (bonus card included) contains the Livre des mutations. It comes after the Jokers screen because the Livre resolves after the copies (reference doc §6.1): a joker that copied a card can have its family changed.
+
+- Title « Livre des mutations ». The vitrail shows the final hand; once answered, the target's pane takes the colour and icon of its new family.
+- Question « Quelle carte change de famille ? »: the other cards of the final hand as tappable rows (name, family, strength), the Phénix excluded (immune), plus a secondary « Ne change rien ».
+- After picking a card: « {Carte} devient : » and a grid of family chips (family colour bar, icon and name, two per row, 48 px tall): every family of the mode except Joker and the card's current family, plus a « Changer » link to pick another card.
+- After picking a family: a row « {Carte} devient {Famille} » with a « Changer » link, and the primary button (label per §A10).
+
+## A7d. Screen 4d — Île (conditional)
+
+Shown if the final hand contains the Île and at least one other card is a Vague or a Flamme, judged on families after the jokers (§A7b) and the Livre (§A7c).
+
+- Title « Île ». Question « L'Île efface le malus de : ».
+- The eligible cards as tappable rows (name, current family, strength), plus a secondary « N'efface rien ».
+- After an answer: the chosen row (or « N'efface rien ») with a « Changer » link, and the primary button (label per §A10).
+
+## A7e. Screen 4e — Ange (conditional)
+
+Shown if the final hand contains the Ange.
+
+- Title « Ange ». Question « L'Ange protège : ».
+- The other cards of the final hand as tappable rows, plus a secondary « Ne protège rien ».
+- After an answer: the chosen row (or « Ne protège rien ») with a « Changer » link, and the primary button (label per §A10).
+
+## A8. Screen 5 — Fin de partie (conditional)
 
 Shown only if needed, with only the needed blocks:
 
@@ -260,7 +401,7 @@ Shown only if needed, with only the needed blocks:
 │ Tornade        13  +40   53 │
 │ Élémental d'Air 4  +45   49 │
 │ Mirage → Orage  0    —    0 │  chosen option shown inline
-│ Objets maudits           −23│  (Extension, if any)
+│ Objets maudits           −23│  (Objets maudits module, if any)
 │                             │
 │ [       Nouvelle main      ]│  primary: same mode, back to screen 2
 │ [    Modifier la main      ]│  secondary: back to screen 2, hand kept
@@ -271,26 +412,46 @@ Shown only if needed, with only the needed blocks:
 Breakdown rules:
 - One row per card in hand (bonus card included), in entry order, then one row for cursed items.
 - Columns: name, base strength, bonus/malus (signed, `—` if 0), subtotal. Use tabular figures.
-- **Masked card**: row dimmed, subtotal `0`, tag « Masquée » and a short reason from the engine trace (« par l'Inondation »).
-- **Cleared malus**: small tag « Malus effacé » (by whom, in the trace).
-- **Choice made by the engine**: shown in the name cell: « Mirage → Orage », « Livre des mutations : Beffroi devient Sorcier », « Île → Feu de forêt ».
-- Tapping a row expands a one-line explanation from the engine trace (optional; include if the engine already produces the trace).
+- **Masked card**: row dimmed, subtotal `0`, tag « Masquée » and a short reason from the engine trace:
+  - masked by another card (incl. the Démon, the undead masking the Jardin, a Doppelgänger): « par {nameWithArticle} » (e.g. « par l'Inondation »);
+  - masked by its own « MASQUE » rule: « par son propre malus »;
+  - Fumée without Flamme: « sans Flamme »; Navire de guerre without Vague: « sans Vague »;
+  - Dirigeable: « sans Armée » or « avec un Climat »; Phénix with a Vague: « avec une Vague ».
+- **Cleared malus**: tag « Malus effacé », reason « par {nameWithArticle} ».
+- **Word Armée cleared** (Éclaireurs, Navire de guerre), on cards whose malus mentions Armée: tag « Mot Armée effacé », reason « par {nameWithArticle} ».
+- `nameWithArticle` is a field of every card in the data (le / la by gender, l' before a vowel or mute h, les for plural names): l'Inondation, le Blizzard, les Éclaireurs.
+- **Choices** shown in the name cell: « Mirage → Orage », « Doppelgänger → Basilic », « Livre des mutations : Beffroi devient Sorcier », « Île → Feu de forêt », « Ange → Reine ».
+- Tapping a row to expand an explanation: deferred (not in v1).
 - Below the list, small print: « Départage : force de base totale {n} » (reference doc §1).
 
-Actions:
+Actions (une main):
 - **Nouvelle main** → same mode, empty session, screen 2 with input focused. This is the main loop at the table, so it is the primary button.
 - **Modifier la main** → screen 2 with everything kept (fix a typo, then recompute).
 - **Changer de mode** → Accueil.
+
+Actions (une partie):
+- **Joueur suivant** (primary) → next player's screen 2; for the last player **Voir le classement** → screen 7.
+- **Modifier la main** → screen 2 with everything kept.
+- **Abandonner la partie** (text button) → confirmation « Abandonner cette partie ? » Oui / Non, then Accueil.
+
+## A9b. Screen 7 — Classement (une partie)
+
+- Header « Classement »; back returns to the last player's result.
+- The winner's vitrail (final state, no animation), a crown, « Joueur {n} », the total in the score style, « points · remporte la partie ».
+- Ranking: highest total first. Equal totals: the lowest total base strength wins (reference doc §1); still equal: same rank, and the heading reads « Égalité entre Joueur 1 et Joueur 3 ».
+- One row per player: rank, « Joueur {n} », total, and « Départage : force de base totale {n} » when another player has the same total. The winner's row has a `--lumiere` bar. Tapping a row opens that player's result read-only (header « Joueur {n} », no actions).
+- Actions: **Nouvelle partie** (primary: same mode, same number of players and same names; nothing else is kept: hands, cursed items, discard and choices start empty) and **Changer de mode** (text button, Accueil).
 
 ---
 
 ## A10. Cross-cutting behaviour
 
-- **Header**: back arrow (except Accueil), screen title, step counter or card counter.
+- **Header**: back arrow (except Accueil, accessibility label « Retour »), screen title, step counter or card counter. During a game, « Joueur {n} sur {N} » in `--lumiere` small text above the title.
+- **Primary button label**: « Compter les points » when the next shown screen is the result, « Continuer » otherwise. This applies to every step.
 - **Focus**: every screen puts focus on its main control on arrival (input, first stepper, or primary button).
 - **Scroll**: on screen 2, keep the input visible above the mobile keyboard (`scrollIntoView({block: 'nearest'})` on focus; use `100dvh` layouts, never `100vh`).
 - **Validation messages** use the interface's voice, are specific, and say how to fix: « Il manque 2 cartes pour compléter ta main. »
-- **Performance**: suggestions update on every keystroke with no debounce (the list is ~95 items). Scoring with optimisation must finish in < 500 ms on a mid-range phone; if not, show the vitrail animation while computing.
+- **Performance**: suggestions update on every keystroke with no debounce (the list is ~95 items). Scoring must finish in < 500 ms on a mid-range phone.
 - **Offline**: a PWA with all assets cached (fonts self-hosted, no CDN at runtime).
 - **Accessibility**: suggestions use the ARIA combobox pattern (`role="combobox"`, `aria-expanded`, `aria-activedescendant`, list `role="listbox"`). Panes have `aria-label` « {famille} : {nom}, force {n} ». Result total is announced (`aria-live="polite"`). Tap targets ≥ 48 px.
 
@@ -303,7 +464,33 @@ Actions:
 | home.base | Jeu de base |
 | home.base.sub | 7 cartes |
 | home.ext | Extension |
-| home.ext.sub | Le Trésor maudit, 8 cartes |
+| home.ext.sub | Le Trésor maudit |
+| modules.title | Le Trésor maudit |
+| modules.question | Avec quoi joues-tu ? |
+| modules.families | Familles supplémentaires |
+| modules.families.sub | Bâtiments, Extérieurs et Morts-vivants · 8 cartes |
+| modules.cursed | Objets maudits |
+| modules.cursed.sub | 7 cartes |
+| modules.full | Les deux |
+| modules.full.sub | Le Trésor maudit complet · 8 cartes |
+| setup.title | Que veux-tu compter ? |
+| setup.single | Une main |
+| setup.single.sub | Calcule une main à la fois |
+| setup.game | Une partie |
+| setup.game.sub | Compte la main de chaque joueur et désigne le gagnant |
+| setup.players | Nombre de joueurs |
+| setup.names | Saisir les noms des joueurs |
+| setup.start | Commencer la partie |
+| game.player | Joueur {n} |
+| game.playerOf | Joueur {n} sur {N} (with a name: {Nom} · {n} sur {N}) |
+| game.next | Joueur suivant |
+| game.ranking | Voir le classement |
+| game.abandon | Abandonner la partie |
+| game.abandon.confirm | Abandonner cette partie ? |
+| ranking.title | Classement |
+| ranking.wins | remporte la partie |
+| ranking.tie | Égalité entre {joueurs} |
+| ranking.new | Nouvelle partie |
 | hand.title | Ta main |
 | hand.placeholder | Tape le nom d'une carte |
 | hand.noMatch | Aucune carte ne correspond à « {q} » |
@@ -311,23 +498,50 @@ Actions:
 | hand.abandon | Abandonner cette main ? |
 | cursed.title | Objets maudits |
 | cursed.help | Ajoute les objets retournés face cachée. L'objet encore face visible ne compte pas. |
+| cursed.placeholder | Tape le nom d'un objet |
+| cursed.noMatch | Aucun objet ne correspond à « {q} » |
 | cursed.none | Aucun objet |
 | cursed.total | Total des objets : {n} |
 | bonus.title | Carte bonus |
 | bonus.necro | Tu as le Nécromancien : quelle carte as-tu récupérée dans la défausse ? |
 | bonus.draw | Tu as {source} : quelle carte as-tu piochée ? |
 | bonus.skip | Pas de carte bonus |
+| jokers.title | Jokers |
+| jokers.copies | {Le Doppelgänger / Le Mirage / Le Métamorphe} copie : |
+| jokers.none | Ne copie rien |
+| book.title | Livre des mutations |
+| book.target | Quelle carte change de famille ? |
+| book.family | {Carte} devient : |
+| book.none | Ne change rien |
+| island.title | Île |
+| island.question | L'Île efface le malus de : |
+| island.none | N'efface rien |
+| angel.title | Ange |
+| angel.question | L'Ange protège : |
+| angel.none | Ne protège rien |
 | end.title | Fin de partie |
 | end.players | Nombre de joueurs |
 | end.discard | Défausse en fin de partie |
 | end.discard.help | Compte les cartes de la zone de défausse (y compris celles sous la Chambre forte). |
 | end.licorne | La Licorne est dans la défausse |
+| end.stepper.minus | Retirer une carte {famille} |
+| end.stepper.plus | Ajouter une carte {famille} |
+| end.stepper.value | {famille} : {n} |
 | cta.continue | Continuer |
+| cta.back | Retour |
 | cta.score | Compter les points |
 | result.title | Résultat |
 | result.points | points |
 | result.masked | Masquée |
 | result.cleared | Malus effacé |
+| result.armyWordCleared | Mot Armée effacé |
+| result.maskedBy | par {nameWithArticle} |
+| result.selfMasked | par son propre malus |
+| result.noFlame | sans Flamme |
+| result.noFlood | sans Vague |
+| result.noArmy | sans Armée |
+| result.withWeather | avec un Climat |
+| result.withFlood | avec une Vague |
 | result.cursed | Objets maudits |
 | result.tiebreak | Départage : force de base totale {n} |
 | result.new | Nouvelle main |

@@ -40,12 +40,12 @@ Installed packages (add nothing else without asking):
 ## Project layout
  
 ```
-src/app/             Expo Router screens only: _layout, index (Accueil), hand, cursed, bonus, end, result (every file here is a route: no tests or helpers)
+src/app/             Expo Router screens only: _layout, index (Accueil), modules, setup, hand, cursed, bonus, jokers, book, island, angel, end, result, ranking (every file here is a route: no tests or helpers)
 src/data/            cards.ts, cursedItems.ts — typed data transcribed from the reference doc §5 and §8
-src/engine/          pure TypeScript scoring engine + optimiser + rulings.ts (no React / RN imports)
+src/engine/          pure TypeScript scoring engine + rulings.ts (no React / RN imports)
 src/engine/__tests__ acceptance tests (reference doc §10) and data sanity tests
 src/search/          name normalisation and suggestion ranking (pure, tested)
-src/flow/            session reducer and step guards (pure, tested)
+src/flow/            session reducer, step guards and game (several players, ranking) (pure, tested)
 src/ui/              theme.ts and shared components (Pane, Vitrail, CardSearch, SuggestionRow, Stepper…)
 assets/images/       app/ (icon, splash, favicon), cards/<famille>/, objets-maudits/ — expected file names in assets/images/images.txt
 docs/                the two specs
@@ -64,7 +64,7 @@ Imports use the `@/*` alias for `src/*` (e.g. `@/engine/score`).
 - `src/engine` is pure TypeScript: no React, no React Native, no I/O. It takes a hand + context and returns a total and a per-card trace (base, bonus, malus, masked + by whom, malus cleared + by whom, chosen option).
 - Follow the resolution order of reference doc §4 exactly. Identify cards by ID (`FR01`…, `CH01`…), never by name string.
 - One card, one ID. Cards whose text changes with the extension (☠: Source de vie, Inondation, Éclaireurs, Nécromancien, Arbre-Monde, Métamorphe, Mirage) are one card with mode-dependent logic. The two Beffroi are two cards (FR03 base, CH16 extension).
-- Choice cards (Doppelgänger, Mirage, Métamorphe, Livre des mutations, Île, Ange) are optimised by the engine (reference §4.2): the UI never asks the player to choose.
+- Jokers (Doppelgänger, Mirage, Métamorphe): the player chooses the copied card, or « Ne copie rien », on the Jokers screen (UI spec §A7b); the engine takes it as input. Livre des mutations: the player chooses the target card and its new family, or « Ne change rien », on the Livre screen (UI spec §A7c). Île: the player chooses the cleared card, or « N'efface rien » (UI spec §A7d). Ange: the player chooses the protected card, or « Ne protège rien » (UI spec §A7e). The engine never optimises a choice (reference §4.2).
 - Every ⚠️ ruling from the reference doc lives in `src/engine/rulings.ts` with these defaults:
 | Key | Default |
 |---|---|
@@ -72,17 +72,22 @@ Imports use the `@/*` alias for `src/*` (e.g. `@/engine/score`).
 | `blankingCycleMasksAll` | `true` |
 | `dirigibleArmyWordClearWaivesArmyCondition` | `true` |
 | `wildfireBlanksUnusedJoker` | `true` (RAW) |
-| `phoenixInDiscardCountsAsFlameAndWeather` | `false` |
 | `worldTreeBonus` | `{ base: 50, extension: 70 }` |
 | `tieBreakUsesPrintedStrengthOfAllCards` | `true` |
  
 - The acceptance tests of reference §10 are the definition of correctness. A failing test is fixed in the engine, never by editing the expected value. If you believe an expected value is wrong, stop and tell me why.
 ## App modes
  
-| Home button | Engine mode | Hand | Card pool |
+| Choice | Engine mode | Hand | Card pool |
 |---|---|---|---|
-| Jeu de base | Base + promos | 7 | 53 base cards + Bouffon + Phénix (Beffroi = FR03) |
-| Extension | Trésor maudit complet + promos | 8 | + Jardin, Bâtiments, Extérieurs, Morts-vivants (Beffroi = CH16), cursed items enabled |
+| Jeu de base | `BASE` + promos | 7 | 53 base cards + Bouffon + Phénix (Beffroi = FR03) |
+| Extension → Objets maudits | `CURSED` + promos | 7 | same as base, cursed items enabled |
+| Extension → Familles supplémentaires | `FAMILIES` + promos | 8 | + Jardin, Bâtiments, Extérieurs, Morts-vivants (Beffroi = CH16), ☠ text active |
+| Extension → Les deux | `FULL` (Trésor maudit complet) + promos | 8 | extra families + cursed items |
+
+Use `hasExtraFamilies(mode)` / `hasCursedItems(mode)` from `src/data/cards.ts`, never compare modes directly. After « Extension », screen « Le Trésor maudit » asks the modules (UI spec §A4a).
+
+After the mode, the player picks « Une main » (one hand at a time) or « Une partie » (2–6 players, optional names otherwise « Joueur 1 … N », unique cards across players, then a ranking; « Nouvelle partie » keeps only the mode, the player count and the names): UI spec §A4b and §A9b.
  
 ## UI spec → React Native translation
  
@@ -119,7 +124,8 @@ Imports use the `@/*` alias for `src/*` (e.g. `@/engine/score`).
 - **context7** for any library, framework or API you are not 100% sure about at its current version.
 - **rtk.** Check with `rtk gain`. If the rtk hook is active, shell commands are rewritten automatically. If rtk is installed but the hook is not active, prefix supported commands with `rtk` (e.g. `rtk npx jest`). If rtk is not installed, tell me; do not install it yourself.
 - **Clean up.** Remove temporary scratch files and scripts before finishing.
-- **Git.** Never `git add`, commit, push or change branches unless I explicitly ask.
+- **Git.** Never `git add`, commit, push or change branches unless I explicitly ask. If you are asked to commit, do not add yourseld as co-author.
+- **Dashes & Emojis** never use emojis and if you need to put dashes, use regular ones - (or _ for code) 
 ## Known open items (do not block on them)
  
 - Arbre-Monde value, cursed item French names/values and expansion card wording are pending my check on the physical cards (reference §0.4). Use the values in the docs; keep them easy to edit in `src/data` and `src/engine/rulings.ts`.
