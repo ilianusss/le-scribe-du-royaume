@@ -3,7 +3,7 @@ import { CURSED_ITEMS } from '@/data/cursedItems';
 import { normalise } from '@/search/normalise';
 import { suggest } from '@/search/suggest';
 
-const names = (query: string, mode: 'BASE' | 'EXTENSION' = 'BASE', exclude: string[] = []) =>
+const names = (query: string, mode: 'BASE' | 'FULL' = 'BASE', exclude: string[] = []) =>
   suggest(cardPool(mode), query, exclude).map((s) => s.item.name);
 
 describe('normalise', () => {
@@ -53,12 +53,12 @@ describe('suggest', () => {
 
   test('beffroi returns only the Beffroi of the mode', () => {
     expect(suggest(cardPool('BASE'), 'beffroi').map((s) => s.item.id)).toEqual(['FR03']);
-    expect(suggest(cardPool('EXTENSION'), 'beffroi').map((s) => s.item.id)).toEqual(['CH16']);
+    expect(suggest(cardPool('FULL'), 'beffroi').map((s) => s.item.id)).toEqual(['CH16']);
   });
 
   test('extension-only cards are hidden in Jeu de base', () => {
     expect(names('genie')).toEqual([]);
-    expect(names('genie', 'EXTENSION')).toEqual(['Génie']);
+    expect(names('genie', 'FULL')).toEqual(['Génie']);
   });
 
   test('cards already in hand are excluded', () => {

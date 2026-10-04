@@ -1,7 +1,7 @@
 import type { CardId, Family } from '@/data/cards';
 
 import type { Rulings } from './rulings';
-import type { DiscardCounts } from './types';
+import type { DiscardCounts, MaskReason } from './types';
 
 export interface WorkingCard {
   id: CardId;
@@ -10,11 +10,11 @@ export interface WorkingCard {
   strength: number;
   malusId: CardId | null;
   masked: boolean;
-  selfMasked: boolean;
-  maskedBy: CardId[];
+  maskReason: MaskReason | null;
   penaltyCleared: boolean;
   clearedBy: CardId[];
   armyWordCleared: boolean;
+  armyWordClearedBy: CardId[];
   familyChangedBy: CardId | null;
 }
 
@@ -29,7 +29,7 @@ export interface HandState {
 
 type ScoreFn = (self: WorkingCard, hand: HandState) => number;
 type BlankFn = (blanker: WorkingCard, target: WorkingCard, hand: HandState) => boolean;
-type SelfMaskFn = (self: WorkingCard, hand: HandState) => boolean;
+type SelfMaskFn = (self: WorkingCard, hand: HandState) => MaskReason | null;
 
 const is = (card: WorkingCard, family: Family) => card.families.includes(family);
 
@@ -226,12 +226,23 @@ export const BLANKS: Partial<Record<CardId, BlankFn>> = {
 
 export const SELF_MASK_ORDER: CardId[] = ['FR55', 'FR13', 'FR41', 'CH05', 'FR45'];
 
+export const ARMY_WORD_MALUS: CardId[] = ['FR07', 'FR08', 'FR12', 'FR24', 'FR37', 'FR45'];
+
 export const SELF_MASK: Partial<Record<CardId, SelfMaskFn>> = {
-  FR55: (_, h) => has(h, 'VAGUE'),
-  FR13: (_, h) => !has(h, 'FLAMME'),
-  FR41: (_, h) => !has(h, 'VAGUE'),
-  CH05: (_, h) => has(h, 'MORT_VIVANT') || hasName(h, 'FR28', 'CH10'),
-  FR45: (s, h) =>
-    (!has(h, 'ARMEE') && !(h.rulings.dirigibleArmyWordClearWaivesArmyCondition && s.armyWordCleared)) ||
-    h.active.some((card) => card !== s && is(card, 'CLIMAT') && card.id !== 'FR55'),
+  FR55: (_, h) => (has(h, 'VAGUE') ? { kind: 'withFlood' } : null),
+  FR13: (_, h) => (has(h, 'FLAMME') ? null : { kind: 'noFlame' }),
+  FR41: (_, h) => (has(h, 'VAGUE') ? null : { kind: 'noFlood' }),
+  CH05: (_, h) => {
+    const masker = h.active.find(
+      (card) => is(card, 'MORT_VIVANT') || card.nameId === 'FR28' || card.nameId === 'CH10',
+    );
+    return masker ? { kind: 'by', cards: [masker.id] } : null;
+  },
+  FR45: (s, h) => {
+    if (!has(h, 'ARMEE') && !(h.rulings.dirigibleArmyWordClearWaivesArmyCondition && s.armyWordCleared))
+      return { kind: 'noArmy' };
+    return h.active.some((card) => card !== s && is(card, 'CLIMAT') && card.id !== 'FR55')
+      ? { kind: 'withWeather' }
+      : null;
+  },
 };

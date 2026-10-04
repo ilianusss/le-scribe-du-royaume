@@ -1,16 +1,34 @@
-import { CARDS_BY_ID, isInPool, modeFamilies, type CardId, type Family, type Mode } from '@/data/cards';
+import {
+  CARDS_BY_ID,
+  hasCursedItems,
+  hasExtraFamilies,
+  isInPool,
+  modeFamilies,
+  type CardId,
+  type Family,
+  type Mode,
+} from '@/data/cards';
 import { CURSED_ITEMS_BY_ID, type CursedItemId } from '@/data/cursedItems';
 
-import { BLANKS, BONUS, MALUS, SELF_MASK, SELF_MASK_ORDER, type HandState, type WorkingCard } from './cardLogic';
+import {
+  ARMY_WORD_MALUS,
+  BLANKS,
+  BONUS,
+  MALUS,
+  SELF_MASK,
+  SELF_MASK_ORDER,
+  type HandState,
+  type WorkingCard,
+} from './cardLogic';
 import { DEFAULT_RULINGS } from './rulings';
-import type { CardTrace, Choices, ChosenOption, CursedTrace, JokerCopy, ScoreContext, ScoreResult } from './types';
+import type { CardTrace, Choices, ChosenOption, CursedTrace, ScoreContext, ScoreResult } from './types';
 
 export const MIRAGE_FAMILIES: Family[] = ['TERRAIN', 'ARMEE', 'CLIMAT', 'VAGUE', 'FLAMME'];
 export const SHAPESHIFTER_FAMILIES: Family[] = ['ARTEFACT', 'SEIGNEUR', 'SORCIER', 'ARME', 'CREATURE'];
 
 export function jokerFamilies(jokerId: 'FR51' | 'FR52', mode: Mode): Family[] {
-  if (jokerId === 'FR52') return mode === 'EXTENSION' ? [...MIRAGE_FAMILIES, 'BATIMENT'] : MIRAGE_FAMILIES;
-  return mode === 'EXTENSION' ? [...SHAPESHIFTER_FAMILIES, 'MORT_VIVANT'] : SHAPESHIFTER_FAMILIES;
+  if (jokerId === 'FR52') return hasExtraFamilies(mode) ? [...MIRAGE_FAMILIES, 'BATIMENT'] : MIRAGE_FAMILIES;
+  return hasExtraFamilies(mode) ? [...SHAPESHIFTER_FAMILIES, 'MORT_VIVANT'] : SHAPESHIFTER_FAMILIES;
 }
 
 function workingCard(id: CardId): WorkingCard {
@@ -22,28 +40,18 @@ function workingCard(id: CardId): WorkingCard {
     strength: card.strength,
     malusId: card.hasPenalty ? id : null,
     masked: false,
-    selfMasked: false,
-    maskedBy: [],
+    maskReason: null,
     penaltyCleared: false,
     clearedBy: [],
     armyWordCleared: false,
+    armyWordClearedBy: [],
     familyChangedBy: null,
   };
 }
 
-function applyJokerCopy(joker: WorkingCard, copy: JokerCopy, mode: Mode): ChosenOption | null {
-  const eligible = jokerFamilies(joker.id as 'FR51' | 'FR52', mode);
-  if ('family' in copy) {
-    if (!eligible.includes(copy.family)) return null;
-    joker.nameId = null;
-    joker.families = [copy.family];
-    return { kind: 'copyFamily', family: copy.family };
-  }
-  const target = CARDS_BY_ID[copy.cardId];
-  if (!target || !isInPool(target, mode) || !eligible.includes(target.families[0])) return null;
-  joker.nameId = target.id;
-  joker.families = [target.families[0]];
-  return { kind: 'copy', cardId: target.id };
+export function canJokerCopy(jokerId: 'FR51' | 'FR52', target: CardId, mode: Mode): boolean {
+  const card = CARDS_BY_ID[target];
+  return !!card && isInPool(card, mode) && jokerFamilies(jokerId, mode).includes(card.families[0]);
 }
 
 function clear(target: WorkingCard, by: CardId) {
@@ -55,7 +63,7 @@ function clear(target: WorkingCard, by: CardId) {
 export function scoreHand(hand: readonly CardId[], context: ScoreContext, choices: Choices = {}): ScoreResult {
   const rulings = context.rulings ?? DEFAULT_RULINGS;
   const mode = context.mode;
-  const ext = mode === 'EXTENSION';
+  const ext = hasExtraFamilies(mode);
   const cards = hand.map(workingCard);
   const byId = new Map(cards.map((card) => [card.id, card]));
   const chosen = new Map<CardId, ChosenOption>();
@@ -77,10 +85,10 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
     ['FR51', choices.shapeshifter],
   ] as const) {
     const joker = byId.get(jokerId);
-    if (!joker || !copy) continue;
-    const option = applyJokerCopy(joker, copy, mode);
-    if (!option) continue;
-    chosen.set(jokerId, option);
+    if (!joker || !copy || !canJokerCopy(jokerId, copy, mode)) continue;
+    joker.nameId = copy;
+    joker.families = [CARDS_BY_ID[copy].families[0]];
+    chosen.set(jokerId, { kind: 'copy', cardId: copy });
     if (jokerId === 'FR52') applied.mirage = copy;
     else applied.shapeshifter = copy;
   }
@@ -141,9 +149,13 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
           break;
         case 'FR25':
           target.armyWordCleared = true;
+          target.armyWordClearedBy.push(clearer.id);
           break;
         case 'FR41':
-          if (target.families.includes('VAGUE')) target.armyWordCleared = true;
+          if (target.families.includes('VAGUE')) {
+            target.armyWordCleared = true;
+            target.armyWordClearedBy.push(clearer.id);
+          }
           break;
       }
     }
@@ -177,13 +189,11 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
     for (const family of card.families) familyCounts.set(family, (familyCounts.get(family) ?? 0) + 1);
   }
   const demons = cards.filter((card) => card.malusId === 'CH10' && !card.penaltyCleared);
-  for (const demon of demons) {
-    for (const target of cards) {
-      if (target.families.includes('EXTERIEUR') || protectedFromOthers(target)) continue;
-      if (target.families.some((family) => familyCounts.get(family) === 1)) {
-        target.masked = true;
-        target.maskedBy.push(demon.id);
-      }
+  for (const target of cards) {
+    if (target.families.includes('EXTERIEUR') || protectedFromOthers(target)) continue;
+    if (demons.length > 0 && target.families.some((family) => familyCounts.get(family) === 1)) {
+      target.masked = true;
+      target.maskReason = { kind: 'by', cards: demons.map((demon) => demon.id) };
     }
   }
   refreshActive();
@@ -214,9 +224,14 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
   const blanked = candidates.filter((card) => isMasked(card, [card]));
   for (const card of blanked) card.masked = true;
   for (const card of blanked) {
-    const sources = incoming.get(card) ?? [];
-    const activeSources = sources.filter((source) => !source.masked);
-    card.maskedBy.push(...(activeSources.length > 0 ? activeSources : sources).map((source) => source.id));
+    const others = (incoming.get(card) ?? []).filter((source) => source !== card);
+    const activeOthers = others.filter((source) => !source.masked);
+    card.maskReason =
+      activeOthers.length > 0
+        ? { kind: 'by', cards: activeOthers.map((source) => source.id) }
+        : edge(card, card)
+          ? { kind: 'ownMalus' }
+          : { kind: 'by', cards: others.map((source) => source.id) };
   }
   refreshActive();
 
@@ -227,9 +242,10 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
     for (const malusId of SELF_MASK_ORDER) {
       for (const card of state.active) {
         if (card.malusId !== malusId || card.penaltyCleared || alwaysProtected.has(card)) continue;
-        if (SELF_MASK[malusId]!(card, state)) {
+        const reason = SELF_MASK[malusId]!(card, state);
+        if (reason) {
           card.masked = true;
-          card.selfMasked = true;
+          card.maskReason = reason;
           changed = true;
           refreshActive();
         }
@@ -251,17 +267,22 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
       malus,
       total: card.masked ? 0 : card.strength + bonus + malus,
       masked: card.masked,
-      maskedBy: card.maskedBy,
-      selfMasked: card.selfMasked,
+      maskReason: card.maskReason,
       penaltyCleared: card.penaltyCleared,
       clearedBy: card.clearedBy,
+      armyWordClearedBy:
+        card.malusId !== null && ARMY_WORD_MALUS.includes(card.malusId) && !card.penaltyCleared
+          ? card.armyWordClearedBy
+          : [],
       familyChangedBy: card.familyChangedBy,
       chosen: chosen.get(card.id) ?? null,
     };
   });
 
   // Step 8: face-down cursed items.
-  const cursed: CursedTrace[] = ext ? (context.cursedItems ?? []).map((id) => cursedValue(id, context)) : [];
+  const cursed: CursedTrace[] = hasCursedItems(mode)
+    ? (context.cursedItems ?? []).map((id) => cursedValue(id, context))
+    : [];
   const cursedTotal = cursed.reduce((sum, item) => sum + item.value, 0);
 
   const tieBreak = rulings.tieBreakUsesPrintedStrengthOfAllCards

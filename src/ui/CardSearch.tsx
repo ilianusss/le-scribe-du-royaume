@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, TextInput, View, type NativeSyntheticEvent, type TextInputKeyPressEventData } from 'react-native';
 
 import { suggest } from '@/search/suggest';
@@ -68,7 +68,7 @@ export function CardSearch<T extends SearchItem>({
     }
   };
 
-  const listId = 'card-search-list';
+  const listId = `card-search-${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const hasQuery = query.trim().length > 0;
 
   return (

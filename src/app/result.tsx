@@ -1,14 +1,16 @@
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
-import { FAMILY_NAMES } from '@/data/cards';
-import type { CardTrace } from '@/engine/types';
+import { CARDS_BY_ID, FAMILY_NAMES, type CardId } from '@/data/cards';
+import type { CardTrace, MaskReason } from '@/engine/types';
+import { playerName } from '@/flow/game';
 import { scoreSession } from '@/flow/session';
 import { Button } from '@/ui/Button';
+import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { cardName } from '@/ui/cardDisplay';
-import { CLEARER_WITH_ARTICLE, copy, MASKER_WITH_ARTICLE, number, signed } from '@/ui/copy';
+import { copy, number, signed } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
 import { goBack, useSession } from '@/ui/SessionProvider';
@@ -25,8 +27,6 @@ function displayName(trace: CardTrace): string {
   switch (chosen.kind) {
     case 'copy':
       return `${name} → ${cardName(chosen.cardId)}`;
-    case 'copyFamily':
-      return `${name} → ${FAMILY_NAMES[chosen.family]}`;
     case 'book':
       return `${name} : ${cardName(chosen.target)} devient ${FAMILY_NAMES[chosen.family]}`;
     case 'island':
@@ -35,9 +35,27 @@ function displayName(trace: CardTrace): string {
   }
 }
 
-function reason(ids: string[], articles: Record<string, string | undefined>): string | null {
-  const names = [...new Set(ids)].map((id) => articles[id] ?? cardName(id as CardTrace['id']));
-  return names.length > 0 ? `par ${names.join(', ')}` : null;
+function byCards(ids: CardId[]): string {
+  return copy.resultMaskedBy([...new Set(ids)].map((id) => CARDS_BY_ID[id].nameWithArticle).join(', '));
+}
+
+function maskText(reason: MaskReason): string {
+  switch (reason.kind) {
+    case 'by':
+      return byCards(reason.cards);
+    case 'ownMalus':
+      return copy.resultSelfMasked;
+    case 'noFlame':
+      return copy.resultNoFlame;
+    case 'noFlood':
+      return copy.resultNoFlood;
+    case 'noArmy':
+      return copy.resultNoArmy;
+    case 'withWeather':
+      return copy.resultWithWeather;
+    case 'withFlood':
+      return copy.resultWithFlood;
+  }
 }
 
 function useCountUp(target: number, animate: boolean): number {
@@ -59,24 +77,21 @@ function useCountUp(target: number, animate: boolean): number {
 
 function Row({ trace }: { trace: CardTrace }) {
   const delta = trace.bonus + trace.malus;
-  const maskedReason = trace.masked && !trace.selfMasked ? reason(trace.maskedBy, MASKER_WITH_ARTICLE) : null;
-  const clearedReason = trace.penaltyCleared ? reason(trace.clearedBy, CLEARER_WITH_ARTICLE) : null;
+  const tags = trace.masked
+    ? [`${copy.resultMasked}${trace.maskReason ? ` · ${maskText(trace.maskReason)}` : ''}`]
+    : [
+        trace.penaltyCleared && `${copy.resultCleared} · ${byCards(trace.clearedBy)}`,
+        trace.armyWordClearedBy.length > 0 && `${copy.resultArmyWordCleared} · ${byCards(trace.armyWordClearedBy)}`,
+      ].filter((tag): tag is string => !!tag);
   return (
     <View style={[styles.row, trace.masked && styles.maskedRow]}>
       <View style={styles.nameCell}>
         <Text style={[styles.name, trace.masked && styles.dim]}>{displayName(trace)}</Text>
-        {trace.masked && (
-          <Text style={styles.tag}>
-            {copy.resultMasked}
-            {maskedReason ? ` · ${maskedReason}` : ''}
+        {tags.map((tag) => (
+          <Text key={tag} style={styles.tag}>
+            {tag}
           </Text>
-        )}
-        {!trace.masked && trace.penaltyCleared && (
-          <Text style={styles.tag}>
-            {copy.resultCleared}
-            {clearedReason ? ` · ${clearedReason}` : ''}
-          </Text>
-        )}
+        ))}
       </View>
       <Text style={[styles.num, trace.masked && styles.dim]}>{number(trace.base)}</Text>
       <Text style={[styles.num, styles.delta, delta < 0 && styles.malus, trace.masked && styles.dim]}>
@@ -96,7 +111,11 @@ function rankLine(total: number): string {
 }
 
 export default function Result() {
-  const { session, dispatch } = useSession();
+  const { session: current, game, dispatch } = useSession();
+  const { player } = useLocalSearchParams<{ player?: string }>();
+  const viewed = player && game ? game.finished[Number(player) - 1] : undefined;
+  const session = viewed ?? current;
+  const [abandoning, setAbandoning] = useState(false);
   const result = useMemo(() => scoreSession(session), [session]);
   const reduced = useReducedMotion();
   const [settled, setSettled] = useState(false);
@@ -118,7 +137,11 @@ export default function Result() {
 
   return (
     <Screen>
-      <Header title={copy.resultTitle} onBack={() => goBack(session, 'RESULT')} />
+      <Header
+        title={copy.resultTitle}
+        eyebrow={viewed && game ? (playerName(game, Number(player)) ?? copy.gamePlayer(Number(player))) : undefined}
+        onBack={() => (viewed ? router.back() : goBack(session, 'RESULT'))}
+      />
       <ScrollView style={styles.flex}>
         <View
           style={styles.content}
@@ -128,7 +151,12 @@ export default function Result() {
           }}
         >
           <Vitrail
-            slots={result.cards.map((trace) => ({ cardId: trace.id, state: trace.masked ? 'masked' : 'active' }))}
+            slots={result.cards.map((trace) => ({
+              cardId: trace.id,
+              copyOf: trace.chosen?.kind === 'copy' ? trace.chosen.cardId : undefined,
+              asFamily: trace.familyChangedBy ? trace.families[0] : undefined,
+              state: trace.masked ? 'masked' : 'active',
+            }))}
             revealStep={PANE_STEP}
             settled={!animate}
             glowColor={result.total < 0 ? colors.ember : undefined}
@@ -155,20 +183,48 @@ export default function Result() {
               )}
             </View>
             <Text style={styles.tiebreak}>{copy.resultTiebreak(result.tieBreak)}</Text>
-            <View style={styles.actions}>
-              <Button
-                label={copy.resultNew}
-                onPress={() => {
-                  dispatch({ type: 'NEW_HAND' });
-                  router.dismissTo('/hand');
-                }}
-              />
-              <Button label={copy.resultEdit} variant="secondary" onPress={() => router.dismissTo('/hand')} />
-              <Button label={copy.resultMode} variant="text" onPress={() => router.dismissTo('/')} />
-            </View>
+            {!viewed && (
+              <View style={styles.actions}>
+                {game ? (
+                  <Button
+                    label={game.finished.length + 1 === game.playerCount ? copy.gameRanking : copy.gameNext}
+                    onPress={() => {
+                      const last = game.finished.length + 1 === game.playerCount;
+                      dispatch({ type: 'NEXT_PLAYER' });
+                      if (last) router.push('/ranking');
+                      else router.dismissTo('/hand');
+                    }}
+                  />
+                ) : (
+                  <Button
+                    label={copy.resultNew}
+                    onPress={() => {
+                      dispatch({ type: 'NEW_HAND' });
+                      router.dismissTo('/hand');
+                    }}
+                  />
+                )}
+                <Button label={copy.resultEdit} variant="secondary" onPress={() => router.dismissTo('/hand')} />
+                {game ? (
+                  <Button label={copy.gameAbandon} variant="text" onPress={() => setAbandoning(true)} />
+                ) : (
+                  <Button label={copy.resultMode} variant="text" onPress={() => router.dismissTo('/')} />
+                )}
+              </View>
+            )}
           </Animated.View>
         </View>
       </ScrollView>
+      <ConfirmDialog
+        visible={abandoning}
+        message={copy.gameAbandonConfirm}
+        onCancel={() => setAbandoning(false)}
+        onConfirm={() => {
+          setAbandoning(false);
+          dispatch({ type: 'END_GAME' });
+          router.dismissTo('/');
+        }}
+      />
     </Screen>
   );
 }

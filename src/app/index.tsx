@@ -1,18 +1,12 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
-import type { Mode } from '@/data/cards';
+import { ArchWindow, WINDOW_HEIGHT, WINDOW_WIDTH } from '@/ui/ArchWindow';
 import { copy } from '@/ui/copy';
-import { archPath } from '@/ui/Pane';
 import { Screen } from '@/ui/Screen';
 import { useSession } from '@/ui/SessionProvider';
-import { colors, fonts, gutter, maxWidth, spacing, type } from '@/ui/theme';
-import type { PressState } from '@/ui/pressable';
-
-const WINDOW_WIDTH = 160;
-const WINDOW_HEIGHT = 240;
+import { colors, gutter, maxWidth, spacing, type } from '@/ui/theme';
 
 function Fleuron() {
   return (
@@ -34,38 +28,15 @@ export default function Accueil() {
   const windowWidth = stacked ? WINDOW_WIDTH : Math.min(WINDOW_WIDTH, (Math.min(width, maxWidth) - gutter * 2 - spacing.l) / 2);
   const windowHeight = windowWidth * (WINDOW_HEIGHT / WINDOW_WIDTH);
 
-  const choose = (mode: Mode) => {
-    dispatch({ type: 'START', mode });
-    router.push('/hand');
-  };
-
-  const window = (mode: Mode, label: string, sub: string, mark?: string) => (
-    <Pressable
-      onPress={() => choose(mode)}
-      accessibilityRole="button"
-      accessibilityLabel={`${label}, ${sub}`}
-      style={({ focused }: PressState) => [
-        styles.window,
-        { width: windowWidth, height: windowHeight },
-        focused && styles.focused,
-      ]}
-    >
-      {({ pressed }) => (
-        <>
-          <Svg width={windowWidth} height={windowHeight} style={StyleSheet.absoluteFill}>
-            <Path
-              d={archPath(windowWidth, windowHeight, 1)}
-              fill={colors.plomb}
-              stroke={pressed ? colors.lumiere : colors.plombClair}
-              strokeWidth={2}
-            />
-          </Svg>
-          <View style={styles.glass}>{mark && <Text style={styles.mark}>{mark}</Text>}</View>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={styles.sub}>{sub}</Text>
-        </>
-      )}
-    </Pressable>
+  const window = (label: string, sub: string, onPress: () => void, mark?: string) => (
+    <ArchWindow
+      label={label}
+      sub={sub}
+      width={windowWidth}
+      height={windowHeight}
+      onPress={onPress}
+      mark={mark && <Text style={styles.mark}>{mark}</Text>}
+    />
   );
 
   return (
@@ -79,8 +50,11 @@ export default function Accueil() {
           <Text style={styles.subtitle}>{copy.homeSubtitle}</Text>
         </View>
         <View style={[styles.windows, stacked && styles.windowsStacked]}>
-          {window('BASE', copy.homeBase, copy.homeBaseSub)}
-          {window('EXTENSION', copy.homeExt, copy.homeExtSub, '☠')}
+          {window(copy.homeBase, copy.homeBaseSub, () => {
+            dispatch({ type: 'START', mode: 'BASE' });
+            router.push('/setup');
+          })}
+          {window(copy.homeExt, copy.homeExtSub, () => router.push('/modules'), '☠')}
         </View>
       </ScrollView>
     </Screen>
@@ -94,15 +68,5 @@ const styles = StyleSheet.create({
   subtitle: { ...type.body, color: colors.velinDoux, textAlign: 'center' },
   windows: { flexDirection: 'row', gap: spacing.l, justifyContent: 'center' },
   windowsStacked: { flexDirection: 'column', alignItems: 'center' },
-  window: {
-    alignItems: 'center',
-    padding: spacing.l,
-    paddingTop: spacing.xxxl,
-    gap: spacing.s,
-  },
-  focused: { outlineColor: colors.lumiere, outlineWidth: 2, outlineStyle: 'solid', outlineOffset: 2 },
-  glass: { flex: 1, minHeight: 80, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   mark: { fontSize: 40, color: colors.velin },
-  label: { fontFamily: fonts.heading, fontSize: 24, lineHeight: 28, color: colors.velin, textAlign: 'center' },
-  sub: { ...type.small, color: colors.velinDoux, textAlign: 'center' },
 });

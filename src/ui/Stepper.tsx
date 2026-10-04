@@ -1,6 +1,7 @@
 import { Minus, Plus } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { copy } from './copy';
 import { FamilyIcon } from './FamilyIcon';
 import { colors, fonts, spacing, type, type PaneFamily } from './theme';
 import type { PressState } from './pressable';
@@ -23,7 +24,7 @@ export function Stepper({ family, label, value, min, max, onChange }: Props) {
         onPress={() => onChange(kind === 'minus' ? value - 1 : value + 1)}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={`${kind === 'minus' ? 'Moins' : 'Plus'} de ${label}`}
+        accessibilityLabel={kind === 'minus' ? copy.endStepperMinus(label) : copy.endStepperPlus(label)}
         accessibilityState={{ disabled }}
         style={({ pressed, focused }: PressState) => [
           styles.round,
@@ -37,11 +38,13 @@ export function Stepper({ family, label, value, min, max, onChange }: Props) {
     );
   };
   return (
-    <View style={styles.row} accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ now: value, min, max }}>
+    <View style={styles.row}>
       <FamilyIcon family={family} color={colors.velinDoux} size={20} />
       <Text style={styles.label}>{label}</Text>
       {button('minus')}
-      <Text style={styles.count}>{value}</Text>
+      <Text style={styles.count} accessibilityLabel={copy.endStepperValue(label, value)}>
+        {value}
+      </Text>
       {button('plus')}
     </View>
   );

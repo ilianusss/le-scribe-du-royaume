@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { ClipPath, Defs, G, LinearGradient, Path, Polygon, Rect, Stop } from 'react-native-svg';
 
-import { CARDS_BY_ID, FAMILY_NAMES, type CardId } from '@/data/cards';
+import { CARDS_BY_ID, FAMILY_NAMES, type CardId, type Family } from '@/data/cards';
 
 import { FamilyIcon } from './FamilyIcon';
 import { colors, familyColors, jokerGradient } from './theme';
@@ -37,6 +37,8 @@ export type PaneState = 'entry' | 'active' | 'masked';
 interface Props {
   width: number;
   cardId?: CardId;
+  copyOf?: CardId;
+  asFamily?: Family;
   state?: PaneState;
   dashedColor?: string;
   revealDelay?: number;
@@ -45,9 +47,9 @@ interface Props {
   onPress?: () => void;
 }
 
-function Glass({ id, width, height }: { id: CardId; width: number; height: number }) {
+function Glass({ id, asFamily, width, height }: { id: CardId; asFamily?: Family; width: number; height: number }) {
   const card = CARDS_BY_ID[id];
-  const family = card.families[0];
+  const family = asFamily ?? card.families[0];
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const clip = `arch-${uid}`;
   const shade = `shade-${uid}`;
@@ -75,7 +77,7 @@ function Glass({ id, width, height }: { id: CardId; width: number; height: numbe
           )}
         </Defs>
         <G clipPath={`url(#${clip})`}>
-          {id === 'FR55' ? (
+          {id === 'FR55' && !asFamily ? (
             <>
               <Rect width={width} height={height} fill={familyColors.CREATURE.pane} />
               <Polygon points={`0,${height * 0.35} ${width},${height * 0.1} ${width},${height * 0.65} 0,${height * 0.9}`} fill={familyColors.FLAMME.pane} />
@@ -108,7 +110,7 @@ function glowStyle(color: string): ViewStyle {
     : { shadowColor: color, shadowOpacity: 0.45, shadowRadius: 9, shadowOffset: { width: 0, height: 0 } };
 }
 
-export function Pane({ width, cardId, state = 'entry', dashedColor, revealDelay = 0, settled, glowColor, onPress }: Props) {
+export function Pane({ width, cardId, copyOf, asFamily, state = 'entry', dashedColor, revealDelay = 0, settled, glowColor, onPress }: Props) {
   const height = width * PANE_RATIO;
   const reduced = useReducedMotion();
   const [lastCard, setLastCard] = useState(cardId);
@@ -156,7 +158,7 @@ export function Pane({ width, cardId, state = 'entry', dashedColor, revealDelay 
 
   const card = shownId ? CARDS_BY_ID[shownId] : undefined;
   const label = card
-    ? `${card.families.map((f) => FAMILY_NAMES[f]).join(', ')} : ${card.name}, force ${card.strength}`
+    ? `${(asFamily ? [asFamily] : card.families).map((f) => FAMILY_NAMES[f]).join(', ')} : ${card.name}, force ${card.strength}`
     : undefined;
   const hairline = card ? `${familyColors[card.families[0]].pane}99` : colors.plombClair;
 
@@ -176,7 +178,7 @@ export function Pane({ width, cardId, state = 'entry', dashedColor, revealDelay 
           {card && (
             <Animated.View style={[styles.fill, fillStyle]}>
               <View style={[styles.fillInner, { height }]}>
-                <Glass id={card.id} width={width} height={height} />
+                <Glass id={copyOf ?? card.id} asFamily={asFamily} width={width} height={height} />
               </View>
             </Animated.View>
           )}
@@ -188,7 +190,7 @@ export function Pane({ width, cardId, state = 'entry', dashedColor, revealDelay 
               <Path d={archPath(width, height, 0.5)} fill={colors.masque} stroke={hairline} strokeWidth={1} />
             </Svg>
             <Animated.View style={[StyleSheet.absoluteFill, lightStyle, state === 'active' && glowStyle(glowColor ?? familyColors[card.families[0]].pane)]}>
-              <Glass id={card.id} width={width} height={height} />
+              <Glass id={copyOf ?? card.id} asFamily={asFamily} width={width} height={height} />
             </Animated.View>
             {state === 'masked' && (
               <Animated.View style={[StyleSheet.absoluteFill, crackStyle]}>

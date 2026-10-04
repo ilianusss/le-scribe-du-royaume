@@ -18,7 +18,7 @@ import { colors, radius, spacing, type } from '@/ui/theme';
 import { Vitrail } from '@/ui/Vitrail';
 
 export default function Hand() {
-  const { session, dispatch } = useSession();
+  const { session, game, dispatch } = useSession();
   const [confirming, setConfirming] = useState(false);
   const [selected, setSelected] = useState<CardId | null>(null);
   const primary = useRef<View>(null);
@@ -35,7 +35,13 @@ export default function Hand() {
 
   const mode = session.mode;
   const size = handSize(session);
-  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const leave = () => {
+    if (game && game.finished.length > 0) {
+      dispatch({ type: 'PREVIOUS_PLAYER' });
+      router.push('/result');
+    } else if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
   const back = () => (session.hand.length > 0 ? setConfirming(true) : leave());
   const add = (id: CardId) => {
     dispatch({ type: 'ADD_CARD', id });
@@ -82,7 +88,7 @@ export default function Hand() {
       <Header title={copy.handTitle} onBack={back} counter={`${session.hand.length} / ${size}`} />
       <Vitrail
         slots={Array.from({ length: size }, (_, index) => ({ cardId: session.hand[index] }))}
-        emptyHint={copy.handFirstCard}
+        //emptyHint={copy.handFirstCard}
         onPanePress={focusRow}
       />
       <ScrollView ref={scroll} style={styles.flex} keyboardShouldPersistTaps="handled">
@@ -92,7 +98,7 @@ export default function Hand() {
           ) : (
             <CardSearch
               items={cardPool(mode)}
-              exclude={session.hand}
+              exclude={[...session.hand, ...(session.game?.unavailableCards ?? [])]}
               onSelect={(card) => add(card.id)}
               placeholder={copy.handPlaceholder}
               noMatch={copy.handNoMatch}

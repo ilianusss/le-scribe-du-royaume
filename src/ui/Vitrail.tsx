@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { CardId } from '@/data/cards';
+import type { CardId, Family } from '@/data/cards';
 
 import { Pane, PANE_RATIO, type PaneState } from './Pane';
 import { colors, type } from './theme';
@@ -11,6 +11,8 @@ const MAX_PANE = 56;
 
 export interface VitrailSlot {
   cardId?: CardId;
+  copyOf?: CardId;
+  asFamily?: Family;
   state?: PaneState;
   dashedColor?: string;
 }
@@ -40,6 +42,8 @@ export function Vitrail({ slots, revealStep = 90, settled, glowColor, emptyHint,
             key={index}
             width={paneWidth}
             cardId={slot.cardId}
+            copyOf={slot.copyOf}
+            asFamily={slot.asFamily}
             state={slot.state}
             dashedColor={slot.dashedColor}
             revealDelay={index * revealStep}

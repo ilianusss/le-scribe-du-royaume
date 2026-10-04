@@ -1,14 +1,23 @@
 import { router, type Href } from 'expo-router';
 import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from 'react';
 
-import { EMPTY_SESSION, sessionReducer, type ScoringSession, type SessionAction } from '@/flow/session';
+import { appReducer, INITIAL_STATE, type AppAction, type Game } from '@/flow/game';
+import type { ScoringSession } from '@/flow/session';
 import { nextStep, previousStep, type Step } from '@/flow/steps';
 
-const SessionContext = createContext<{ session: ScoringSession; dispatch: Dispatch<SessionAction> } | null>(null);
+const SessionContext = createContext<{
+  session: ScoringSession;
+  game: Game | null;
+  dispatch: Dispatch<AppAction>;
+} | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [session, dispatch] = useReducer(sessionReducer, EMPTY_SESSION);
-  return <SessionContext.Provider value={{ session, dispatch }}>{children}</SessionContext.Provider>;
+  const [state, dispatch] = useReducer(appReducer, INITIAL_STATE);
+  return (
+    <SessionContext.Provider value={{ session: state.session, game: state.game, dispatch }}>
+      {children}
+    </SessionContext.Provider>
+  );
 }
 
 export function useSession() {
@@ -22,6 +31,10 @@ export const STEP_ROUTES: Record<Step, Href> = {
   HAND: '/hand',
   CURSED: '/cursed',
   BONUS: '/bonus',
+  JOKERS: '/jokers',
+  BOOK: '/book',
+  ISLAND: '/island',
+  ANGEL: '/angel',
   CONTEXT: '/end',
   RESULT: '/result',
 };

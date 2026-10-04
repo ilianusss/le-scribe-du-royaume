@@ -2,8 +2,8 @@ import { Redirect } from 'expo-router';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { FAMILY_NAMES } from '@/data/cards';
-import { MAX_DISCARD, MAX_PLAYERS, MIN_PLAYERS } from '@/flow/session';
-import { canContinue, needsLicorne, needsPlayerCount, neededDiscardFamilies } from '@/flow/steps';
+import { MAX_DISCARD, MAX_PLAYERS, MIN_PLAYERS, sessionDiscard } from '@/flow/session';
+import { asksPlayerCount, canContinue, needsLicorne, neededDiscardFamilies } from '@/flow/steps';
 import { Button } from '@/ui/Button';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
@@ -17,15 +17,16 @@ const PLAYER_OPTIONS = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_,
 
 export default function End() {
   const { session, dispatch } = useSession();
-  if (session.mode !== 'EXTENSION') return <Redirect href="/" />;
+  if (!session.mode) return <Redirect href="/" />;
 
   const families = neededDiscardFamilies(session);
+  const discard = sessionDiscard(session);
 
   return (
     <Screen>
       <Header title={copy.endTitle} onBack={() => goBack(session, 'CONTEXT')} />
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        {needsPlayerCount(session) && (
+        {asksPlayerCount(session) && (
           <View style={styles.block}>
             <Text style={styles.heading}>{copy.endPlayers}</Text>
             <SegmentedControl
@@ -45,7 +46,7 @@ export default function End() {
                 key={family}
                 family={family}
                 label={FAMILY_NAMES[family]}
-                value={session.discardCounts[family] ?? 0}
+                value={discard[family] ?? 0}
                 min={0}
                 max={MAX_DISCARD}
                 onChange={(count) => dispatch({ type: 'SET_DISCARD', family, count })}
@@ -55,7 +56,7 @@ export default function End() {
               <View style={styles.toggle}>
                 <Text style={styles.toggleLabel}>{copy.endLicorne}</Text>
                 <Switch
-                  value={session.discardCounts.licorne ?? false}
+                  value={discard.licorne ?? false}
                   onValueChange={(value) => dispatch({ type: 'SET_LICORNE', value })}
                   accessibilityLabel={copy.endLicorne}
                   trackColor={{ true: colors.lumiere, false: colors.plombClair }}

@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { hasCursedItems } from '@/data/cards';
 import { CURSED_ITEMS, CURSED_ITEMS_BY_ID } from '@/data/cursedItems';
 import { cursedValue } from '@/engine/score';
 import { nextStep } from '@/flow/steps';
@@ -16,7 +17,7 @@ import { colors, radius, spacing, type } from '@/ui/theme';
 
 export default function Cursed() {
   const { session, dispatch } = useSession();
-  if (session.mode !== 'EXTENSION') return <Redirect href="/" />;
+  if (!session.mode || !hasCursedItems(session.mode)) return <Redirect href="/" />;
 
   const context = { mode: session.mode, cursedItems: session.cursedItems, playerCount: session.playerCount };
   const values = session.cursedItems.map((id) => cursedValue(id, context));
@@ -30,7 +31,7 @@ export default function Cursed() {
         <Text style={styles.help}>{copy.cursedHelp}</Text>
         <CardSearch
           items={CURSED_ITEMS}
-          exclude={session.cursedItems}
+          exclude={[...session.cursedItems, ...(session.game?.unavailableCursed ?? [])]}
           onSelect={(item) => dispatch({ type: 'ADD_CURSED', id: item.id })}
           placeholder={copy.cursedPlaceholder}
           noMatch={copy.cursedNoMatch}

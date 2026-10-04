@@ -47,21 +47,26 @@ describe('card pool per mode', () => {
     expect(pool.filter((c) => c.name === 'Beffroi').map((c) => c.id)).toEqual(['FR03']);
   });
 
-  test('Extension: every card except the Terrain Beffroi', () => {
-    const pool = cardPool('EXTENSION');
+  test('Objets maudits only: same pool as Jeu de base', () => {
+    expect(cardPool('CURSED')).toEqual(cardPool('BASE'));
+  });
+
+  test('Familles supplémentaires and full: every card except the Terrain Beffroi', () => {
+    expect(cardPool('FAMILIES')).toEqual(cardPool('FULL'));
+    const pool = cardPool('FULL');
     expect(pool).toHaveLength(70);
     expect(pool.filter((c) => c.name === 'Beffroi').map((c) => c.id)).toEqual(['CH16']);
     expect(pool.some((c) => c.id === 'CH05')).toBe(true);
   });
 
   test('names are unique within each pool', () => {
-    for (const mode of ['BASE', 'EXTENSION'] as const) {
+    for (const mode of ['BASE', 'CURSED', 'FAMILIES', 'FULL'] as const) {
       const names = cardPool(mode).map((c) => c.name);
       expect(new Set(names).size).toBe(names.length);
     }
   });
 
   test('hand sizes', () => {
-    expect(HAND_SIZE).toEqual({ BASE: 7, EXTENSION: 8 });
+    expect(HAND_SIZE).toEqual({ BASE: 7, CURSED: 7, FAMILIES: 8, FULL: 8 });
   });
 });

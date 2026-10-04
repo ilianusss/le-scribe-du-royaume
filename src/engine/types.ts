@@ -13,12 +13,10 @@ export interface ScoreContext {
   rulings?: Rulings;
 }
 
-export type JokerCopy = { cardId: CardId } | { family: Family };
-
 export interface Choices {
   doppelganger?: CardId | null;
-  mirage?: JokerCopy | null;
-  shapeshifter?: JokerCopy | null;
+  mirage?: CardId | null;
+  shapeshifter?: CardId | null;
   book?: { target: CardId; family: Family } | null;
   island?: CardId | null;
   angel?: CardId | null;
@@ -26,10 +24,18 @@ export interface Choices {
 
 export type ChosenOption =
   | { kind: 'copy'; cardId: CardId }
-  | { kind: 'copyFamily'; family: Family }
   | { kind: 'book'; target: CardId; family: Family }
   | { kind: 'island'; target: CardId }
   | { kind: 'angel'; target: CardId };
+
+export type MaskReason =
+  | { kind: 'by'; cards: CardId[] }
+  | { kind: 'ownMalus' }
+  | { kind: 'noFlame' }
+  | { kind: 'noFlood' }
+  | { kind: 'noArmy' }
+  | { kind: 'withWeather' }
+  | { kind: 'withFlood' };
 
 export interface CardTrace {
   id: CardId;
@@ -39,10 +45,10 @@ export interface CardTrace {
   malus: number;
   total: number;
   masked: boolean;
-  maskedBy: CardId[];
-  selfMasked: boolean;
+  maskReason: MaskReason | null;
   penaltyCleared: boolean;
   clearedBy: CardId[];
+  armyWordClearedBy: CardId[];
   familyChangedBy: CardId | null;
   chosen: ChosenOption | null;
 }

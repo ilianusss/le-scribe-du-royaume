@@ -3,7 +3,6 @@ export interface Rulings {
   blankingCycleMasksAll: boolean;
   dirigibleArmyWordClearWaivesArmyCondition: boolean;
   wildfireBlanksUnusedJoker: boolean;
-  phoenixInDiscardCountsAsFlameAndWeather: boolean;
   worldTreeBonus: { base: number; extension: number };
   tieBreakUsesPrintedStrengthOfAllCards: boolean;
 }
@@ -13,7 +12,6 @@ export const DEFAULT_RULINGS: Rulings = {
   blankingCycleMasksAll: true,
   dirigibleArmyWordClearWaivesArmyCondition: true,
   wildfireBlanksUnusedJoker: true,
-  phoenixInDiscardCountsAsFlameAndWeather: false,
   worldTreeBonus: { base: 50, extension: 70 },
   tieBreakUsesPrintedStrengthOfAllCards: true,
 };

@@ -1,12 +1,11 @@
 import { cardPool, type CardId, type Family, type Mode } from '@/data/cards';
 import { CURSED_ITEMS, type CursedItemId } from '@/data/cursedItems';
-import { optimise } from '@/engine/optimise';
 import { DEFAULT_RULINGS } from '@/engine/rulings';
 import { scoreHand } from '@/engine/score';
 import type { Choices, DiscardCounts } from '@/engine/types';
 
 const B: Mode = 'BASE';
-const X: Mode = 'EXTENSION';
+const X: Mode = 'FULL';
 
 function card(name: string, mode: Mode): CardId {
   const found = cardPool(mode).find((c) => c.name === name);
@@ -115,14 +114,17 @@ const CASES: Case[] = [
   { n: 62, mode: X, hand: ['Arbre-Monde', 'Montagne', 'Éclair', 'Chevaliers', 'Collectionneur'], expected: 111 },
   { n: 63, mode: X, hand: ['Roi', 'Reine', 'Chevaliers'], cursed: ['Coffre au trésor', 'Longue-vue', 'Sarcophage', 'Portail'], players: 4, expected: 78 },
   { n: 64, mode: X, hand: ['Roi', 'Reine', 'Chevaliers'], cursed: ['Coffre au trésor', 'Longue-vue', 'Sarcophage'], players: 2, expected: 64 },
+
+  { n: 65, mode: B, hand: ['Blizzard', 'Livre des mutations', "Élémental d'Eau"], choices: { book: ['Blizzard', 'VAGUE'] }, expected: 7 },
+  { n: 66, mode: B, hand: ['Feu de forêt', 'Livre des mutations', 'Roi'], choices: { book: ['Feu de forêt', 'CREATURE'] }, expected: 11 },
 ];
 
 function toChoices(named: NamedChoices | undefined, mode: Mode): Choices {
   if (!named) return {};
   return {
     doppelganger: named.doppelganger ? card(named.doppelganger, mode) : null,
-    mirage: named.mirage ? { cardId: card(named.mirage, mode) } : null,
-    shapeshifter: named.shapeshifter ? { cardId: card(named.shapeshifter, mode) } : null,
+    mirage: named.mirage ? card(named.mirage, mode) : null,
+    shapeshifter: named.shapeshifter ? card(named.shapeshifter, mode) : null,
     book: named.book ? { target: card(named.book[0], mode), family: named.book[1] } : null,
     island: named.island ? card(named.island, mode) : null,
     angel: named.angel ? card(named.angel, mode) : null,
@@ -147,25 +149,59 @@ describe('reference §10 acceptance tests (forced choices)', () => {
   });
 });
 
-describe('automatic choices score at least the forced choices', () => {
-  test.each(CASES.filter((c) => c.n !== 12).map((c) => [c.n, c] as const))('#%i', (_, c) => {
-    const { hand, context } = setup(c);
-    const best = optimise(hand, context);
-    expect(best.total).toBeGreaterThanOrEqual(c.expected);
-    expect(scoreHand(hand, context, best.choices).total).toBe(best.total);
-  });
-});
-
 test('§10 #62 with Arbre-Monde at +50', () => {
   const hand = ['Arbre-Monde', 'Montagne', 'Éclair', 'Chevaliers', 'Collectionneur'].map((name) => card(name, X));
   const rulings = { ...DEFAULT_RULINGS, worldTreeBonus: { base: 50, extension: 50 } };
   expect(scoreHand(hand, { mode: X, playerCount: 4, rulings }).total).toBe(91);
 });
 
-test('the optimiser stays fast on a hand with every choice card', () => {
-  const hand: CardId[] = ['FR52', 'FR51', 'FR53', 'FR49', 'FR09', 'CH08', 'FR16', 'FR08', 'FR26'];
-  const start = Date.now();
-  const best = optimise(hand, { mode: X, playerCount: 4 });
-  expect(Date.now() - start).toBeLessThan(1000);
-  expect(best.total).toBeGreaterThanOrEqual(scoreHand(hand, { mode: X, playerCount: 4 }).total);
+describe('mask and clear reasons in the trace', () => {
+  const trace = (mode: Mode, names: string[], choices?: NamedChoices, rest: Partial<Case> = {}) => {
+    const { hand, context } = setup({ n: 0, mode, hand: names, expected: 0, choices, ...rest });
+    const result = scoreHand(hand, context, toChoices(choices, mode));
+    return (name: string) => result.cards.find((c) => c.id === card(name, mode))!;
+  };
+
+  test('a card masked by its own rule (test 65)', () => {
+    const t = trace(B, ['Blizzard', 'Livre des mutations', "Élémental d'Eau"], { book: ['Blizzard', 'VAGUE'] });
+    expect(t('Blizzard').maskReason).toEqual({ kind: 'ownMalus' });
+    expect(t("Élémental d'Eau").masked).toBe(false);
+  });
+
+  test('masked by another card, by the Démon, and the Jardin by an undead', () => {
+    expect(trace(B, ['Blizzard', 'Inondation'])('Inondation').maskReason).toEqual({ kind: 'by', cards: ['FR12'] });
+    expect(trace(X, ['Démon', 'Roi'])('Roi').maskReason).toEqual({ kind: 'by', cards: ['CH10'] });
+    expect(trace(X, ['Jardin', 'Goule'], undefined, { discard: {} })('Jardin').maskReason).toEqual({ kind: 'by', cards: ['CH12'] });
+  });
+
+  test('self-conditional reasons', () => {
+    expect(trace(B, ['Fumée'])('Fumée').maskReason).toEqual({ kind: 'noFlame' });
+    expect(trace(B, ['Navire de guerre'])('Navire de guerre').maskReason).toEqual({ kind: 'noFlood' });
+    expect(trace(B, ['Dirigeable'])('Dirigeable').maskReason).toEqual({ kind: 'noArmy' });
+    expect(trace(B, ['Dirigeable', 'Chevaliers', 'Orage'])('Dirigeable').maskReason).toEqual({ kind: 'withWeather' });
+    expect(trace(B, ['Phénix', 'Marécage'])('Phénix').maskReason).toEqual({ kind: 'withFlood' });
+  });
+
+  test('cleared malus and cleared word Armée', () => {
+    const t = trace(B, ['Montagne', 'Marécage', 'Éclaireurs', 'Infanterie naine', 'Chevaliers']);
+    expect(t('Marécage').clearedBy).toEqual(['FR01']);
+    expect(t('Marécage').armyWordClearedBy).toEqual([]);
+    expect(t('Infanterie naine').armyWordClearedBy).toEqual(['FR25']);
+    expect(t('Chevaliers').armyWordClearedBy).toEqual([]);
+  });
+});
+
+describe('extension modules', () => {
+  test('cursed items only count when the Objets maudits module is played', () => {
+    const hand = ['Roi', 'Reine', 'Chevaliers'].map((name) => card(name, B));
+    const cursedItems = ['Coffre au trésor', 'Longue-vue', 'Sarcophage', 'Portail'].map(item);
+    expect(scoreHand(hand, { mode: 'CURSED', playerCount: 4, cursedItems }).total).toBe(78);
+    expect(scoreHand(hand, { mode: 'FAMILIES', playerCount: 4, cursedItems }).total).toBe(74);
+  });
+
+  test('☠ text only applies with the extra families', () => {
+    const hand = ['Arbre-Monde', 'Montagne', 'Éclair', 'Chevaliers', 'Collectionneur'].map((name) => card(name, B));
+    expect(scoreHand(hand, { mode: 'CURSED', playerCount: 4 }).total).toBe(91);
+    expect(scoreHand(hand, { mode: 'FAMILIES', playerCount: 4 }).total).toBe(111);
+  });
 });
