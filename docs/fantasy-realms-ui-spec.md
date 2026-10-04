@@ -89,7 +89,7 @@ Card pool per mode:
  └────────┬─────────┘│
           └────┬─────┘
                ▼
-     Île in the final hand, with another Vague or Flamme?
+     Île in the final hand, with a malus it can still erase?
           ┌───yes───┐
           ▼         │ no
  ┌──────────────────┐│
@@ -113,16 +113,24 @@ Card pool per mode:
  └────────┬─────────┘│
           └────┬─────┘
                ▼
-        ┌──────────────┐
-        │ 6. Résultat  │  Une main: Nouvelle main │ Modifier la main │ Changer de mode
-        └──────┬───────┘  Une partie: Joueur suivant / Voir le classement │ Modifier la main │ Abandonner la partie
-               ▼ (une partie, after the last player)
-        ┌──────────────┐
-        │ 7. Classement│  Nouvelle partie │ Changer de mode
-        └──────────────┘
+              une partie?
+          ┌────yes────┐
+          ▼           │ no
+ ┌──────────────────┐ │
+ │ 6b. Récapitulatif│ │  Joueur suivant / Voir le classement │ Modifier la main │ Abandonner la partie
+ └────────┬─────────┘ ▼
+          │    ┌──────────────┐
+          │    │ 6. Résultat  │  Nouvelle main │ Modifier la main │ Changer de mode
+          │    └──────────────┘
+          ▼ (after the last player)
+ ┌──────────────────┐
+ │ 7. Classement    │  Nouvelle partie │ Changer de mode
+ └──────────────────┘
 ```
 
 Steps 3, 4, 4b, 4c, 4d, 4e and 5 are **conditional**. The step counter in the header only counts the steps that apply to the current hand (recompute it when the hand changes).
+
+**Une main** ends on the result, **une partie** ends each hand on the recap: in a game no score is ever shown before the ranking.
 
 ### State model
 
@@ -156,9 +164,9 @@ interface Game { mode: Mode; playerCount: number; names: string[]; finished: Sco
 
 The result is computed from the session (it is not stored).
 
-Implement the flow as a small state machine (`MODE → HAND → CURSED? → BONUS? → JOKERS? → BOOK? → ISLAND? → ANGEL? → CONTEXT? → RESULT`). A step's guard decides whether it is shown; going **back** from a step returns to the previous *shown* step. Editing the hand invalidates later answers only if they no longer apply (e.g. removing the Nécromancien clears `bonusCard`; removing a joker, or the card a Doppelgänger copies, clears that joker's answer; removing the Livre or its target card clears `bookChoice`; the Île or Ange answer is cleared when its card or its target leaves the hand, or when the Île's target is no longer a Vague or a Flamme).
+Implement the flow as a small state machine (`MODE → HAND → CURSED? → BONUS? → JOKERS? → BOOK? → ISLAND? → ANGEL? → CONTEXT? → RECAP? → RESULT`). `RECAP` is shown only in a game, `RESULT` only outside one. A step's guard decides whether it is shown; going **back** from a step returns to the previous *shown* step. Editing the hand invalidates later answers only if they no longer apply (e.g. removing the Nécromancien clears `bonusCard`; removing a joker, or the card a Doppelgänger copies, clears that joker's answer; removing the Livre or its target card clears `bookChoice`; the Île or Ange answer is cleared when its card or its target leaves the hand, or when the Île's target is no longer a Vague or a Flamme).
 
-**Une partie**: players are « Joueur 1 » … « Joueur N », or the names entered on screen 1b (optional). Each player goes through steps 2 → 6 with a fresh session built from the `GameContext`. Going back from a player's hand (after a confirmation if cards were entered) returns to the previous player's result with their answers kept.
+**Une partie**: every player has a name, entered on screen 1b. Each player goes through steps 2 → 6b with a fresh session built from the `GameContext`. Going back from a player's hand (after a confirmation if cards were entered) returns to the previous player's recap with their answers kept.
 
 No persistence is required. Optional nicety: remember the last mode in `localStorage` (wrap in try/catch).
 
@@ -203,12 +211,11 @@ Behaviour:
 - Two arched windows, same component as Accueil: « Une main » / « Calcule une main à la fois » (hand icon) and « Une partie » / « Compte la main de chaque joueur et désigne le gagnant » (players icon).
 - « Une main » goes straight to screen 2.
 - « Une partie » highlights its window and shows « Nombre de joueurs » (segmented control 2–6, no default). Once a count is picked:
-  - a switch « Saisir les noms des joueurs » (off by default);
-  - when on, one text field per player (placeholder « Joueur {n} », capitalised words, 20 characters max, « suivant » on the keyboard moves to the next field); an empty field keeps « Joueur {n} »;
-  - the primary button « Commencer la partie ».
+  - one text field per player, always shown: names are not optional (placeholder « Joueur {n} », capitalised words, 20 characters max, « suivant » on the keyboard moves to the next field);
+  - the primary button « Commencer la partie », shown only once every field is filled.
 
 **During a game**:
-- The header shows « Joueur {n} sur {N} » above the screen title, or « {Nom} · {n} sur {N} » when the player has a name. Names replace « Joueur {n} » everywhere (ranking, read-only result).
+- The header shows « {Nom} · {n} sur {N} » above the screen title. Names replace « Joueur {n} » everywhere (recap, ranking, read-only result).
 - The player count is known: the Génie and the Longue-vue never ask it, and screen 5 is skipped when it has nothing else to ask.
 - Cards and cursed items already in a previous player's final hand are not suggested (each card is unique).
 - The discard counts on screen 5 start from the last counts entered in the game.
@@ -345,7 +352,12 @@ Shown if the final hand (bonus card included) contains the Livre des mutations. 
 
 ## A7d. Screen 4d — Île (conditional)
 
-Shown if the final hand contains the Île and at least one other card is a Vague or a Flamme, judged on families after the jokers (§A7b) and the Livre (§A7c).
+Shown if the final hand contains the Île and at least one other card has a malus the Île can still erase. A card is eligible when all three hold:
+- it is a Vague or a Flamme, judged on families after the jokers (§A7b) and the Livre (§A7c);
+- it has a malus (a Doppelgänger takes the malus of the card it copies; a Mirage and a Métamorphe copy a name and a family, not a malus, so they never have one);
+- no other card in the hand already erases that malus (Montagne, Caverne, Dresseur, Rune de Protection) — erasing it a second time would change nothing.
+
+With no eligible card the screen is skipped: there is nothing to erase.
 
 - Title « Île ». Question « L'Île efface le malus de : ».
 - The eligible cards as tappable rows (name, current family, strength), plus a secondary « N'efface rien ».
@@ -380,6 +392,50 @@ Shown only if needed, with only the needed blocks:
 - Continue is always enabled (0 is a valid answer), label « Compter les points ».
 
 ---
+
+## A8b. Screen 6b — Récapitulatif (une partie only)
+
+**Job**: let the current player check and validate their hand before the next player plays. In a game no score is shown before the ranking: the players discover the totals together on screen 7.
+
+```
+┌─────────────────────────────┐
+│ ←   Alice · 1 sur 3         │
+│     Récapitulatif           │
+│                             │
+│ ╭─╮╭─╮╭─╮╭─╮╭─╮╭─╮╭─╮       │  vitrail, final state, no animation
+│ │█││█││█││█││█││█││█│       │  copies and family changes applied
+│ ╰─╯╰─╯╰─╯╰─╯╰─╯╰─╯╰─╯       │
+│                             │
+│ Cette main est-elle         │
+│ correcte ?                  │
+│                             │
+│ Mirage → Orage              │
+│   Climat                 0  │
+│ Île                         │
+│   Vague · N'efface rien 14  │
+│ Inondation                  │
+│   Vague                 32  │
+│ ...                         │
+│                             │
+│ Objets maudits              │  (Objets maudits module, if any)
+│ Couronne maudite            │
+│                             │
+│ [     Joueur suivant       ]│  primary
+│ [    Modifier la main      ]│  secondary
+│      Abandonner la partie   │  text button
+└─────────────────────────────┘
+```
+
+- Header « Récapitulatif », back arrow to the previous shown step.
+- Vitrail of the final hand, final state, no reveal animation.
+- One row per card of the final hand (bonus card included), in entry order: name, family after the choices, printed strength. Same row component as the suggestions.
+- **Choices** are shown exactly as on the result (§A9): « Mirage → Orage », « Livre des mutations : Beffroi devient Sorcier », « Île → Feu de forêt », « Ange → Reine ». When the player answered « rien », the answer is appended to the family line: « Vague · N'efface rien ».
+- **Objets maudits**: the face-down items are listed by name under a « Objets maudits » heading, **without their values** (they are negative points).
+- **No total, no bonus, no malus, no masked card**: nothing that reveals the score.
+- Actions:
+  - **Joueur suivant** (primary) → next player's screen 2; for the last player **Voir le classement** → screen 7.
+  - **Modifier la main** → screen 2 with everything kept.
+  - **Abandonner la partie** (text button) → confirmation « Abandonner cette partie ? » Oui / Non, then Accueil.
 
 ## A9. Screen 6 — Résultat
 
@@ -424,22 +480,19 @@ Breakdown rules:
 - Tapping a row to expand an explanation: deferred (not in v1).
 - Below the list, small print: « Départage : force de base totale {n} » (reference doc §1).
 
-Actions (une main):
+Actions (une main only):
 - **Nouvelle main** → same mode, empty session, screen 2 with input focused. This is the main loop at the table, so it is the primary button.
 - **Modifier la main** → screen 2 with everything kept (fix a typo, then recompute).
 - **Changer de mode** → Accueil.
 
-Actions (une partie):
-- **Joueur suivant** (primary) → next player's screen 2; for the last player **Voir le classement** → screen 7.
-- **Modifier la main** → screen 2 with everything kept.
-- **Abandonner la partie** (text button) → confirmation « Abandonner cette partie ? » Oui / Non, then Accueil.
+In a game this screen is only ever opened read-only from the ranking (header « {Nom} », no actions): the hand itself is validated on screen 6b.
 
 ## A9b. Screen 7 — Classement (une partie)
 
-- Header « Classement »; back returns to the last player's result.
+- Header « Classement »; back returns to the last player's recap.
 - The winner's vitrail (final state, no animation), a crown, « Joueur {n} », the total in the score style, « points · remporte la partie ».
 - Ranking: highest total first. Equal totals: the lowest total base strength wins (reference doc §1); still equal: same rank, and the heading reads « Égalité entre Joueur 1 et Joueur 3 ».
-- One row per player: rank, « Joueur {n} », total, and « Départage : force de base totale {n} » when another player has the same total. The winner's row has a `--lumiere` bar. Tapping a row opens that player's result read-only (header « Joueur {n} », no actions).
+- One row per player: rank, « Joueur {n} », total, and « Départage : force de base totale {n} » when another player has the same total. The winner's row has a `--lumiere` bar. Tapping a row opens that player's result read-only (header « {Nom} », no actions): this is where the breakdown of a hand is read.
 - Actions: **Nouvelle partie** (primary: same mode, same number of players and same names; nothing else is kept: hands, cursed items, discard and choices start empty) and **Changer de mode** (text button, Accueil).
 
 ---
@@ -447,7 +500,7 @@ Actions (une partie):
 ## A10. Cross-cutting behaviour
 
 - **Header**: back arrow (except Accueil, accessibility label « Retour »), screen title, step counter or card counter. During a game, « Joueur {n} sur {N} » in `--lumiere` small text above the title.
-- **Primary button label**: « Compter les points » when the next shown screen is the result, « Continuer » otherwise. This applies to every step.
+- **Primary button label**: « Compter les points » when the next shown screen is the result, « Continuer » otherwise. This applies to every step. In a game the last step before the recap therefore says « Continuer »: the points are counted, but only shown on the ranking.
 - **Focus**: every screen puts focus on its main control on arrival (input, first stepper, or primary button).
 - **Scroll**: on screen 2, keep the input visible above the mobile keyboard (`scrollIntoView({block: 'nearest'})` on focus; use `100dvh` layouts, never `100vh`).
 - **Validation messages** use the interface's voice, are specific, and say how to fix: « Il manque 2 cartes pour compléter ta main. »
@@ -479,7 +532,6 @@ Actions (une partie):
 | setup.game | Une partie |
 | setup.game.sub | Compte la main de chaque joueur et désigne le gagnant |
 | setup.players | Nombre de joueurs |
-| setup.names | Saisir les noms des joueurs |
 | setup.start | Commencer la partie |
 | game.player | Joueur {n} |
 | game.playerOf | Joueur {n} sur {N} (with a name: {Nom} · {n} sur {N}) |
@@ -527,6 +579,8 @@ Actions (une partie):
 | end.stepper.minus | Retirer une carte {famille} |
 | end.stepper.plus | Ajouter une carte {famille} |
 | end.stepper.value | {famille} : {n} |
+| recap.title | Récapitulatif |
+| recap.question | Cette main est-elle correcte ? |
 | cta.continue | Continuer |
 | cta.back | Retour |
 | cta.score | Compter les points |

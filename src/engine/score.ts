@@ -20,7 +20,7 @@ import {
   type HandState,
   type WorkingCard,
 } from './cardLogic';
-import { DEFAULT_RULINGS } from './rulings';
+import { DEFAULT_RULINGS, type Rulings } from './rulings';
 import type { CardTrace, Choices, ChosenOption, CursedTrace, ScoreContext, ScoreResult } from './types';
 
 export const MIRAGE_FAMILIES: Family[] = ['TERRAIN', 'ARMEE', 'CLIMAT', 'VAGUE', 'FLAMME'];
@@ -52,6 +52,28 @@ function workingCard(id: CardId): WorkingCard {
 export function canJokerCopy(jokerId: 'FR51' | 'FR52', target: CardId, mode: Mode): boolean {
   const card = CARDS_BY_ID[target];
   return !!card && isInPool(card, mode) && jokerFamilies(jokerId, mode).includes(card.families[0]);
+}
+
+export interface ClearTarget {
+  id: CardId;
+  families: readonly Family[];
+}
+
+export function clearsPenalty(clearerId: CardId, target: ClearTarget, rulings: Rulings): boolean {
+  switch (clearerId) {
+    case 'FR01':
+      return target.families.includes('VAGUE');
+    case 'FR02':
+      return target.families.includes('CLIMAT');
+    case 'FR27':
+      return (
+        target.families.includes('CREATURE') && (target.id !== 'FR55' || rulings.phoenixPenaltyClearedByBeastmaster)
+      );
+    case 'FR50':
+      return true;
+    default:
+      return false;
+  }
 }
 
 function clear(target: WorkingCard, by: CardId) {
@@ -127,23 +149,8 @@ export function scoreHand(hand: readonly CardId[], context: ScoreContext, choice
   for (const clearer of cards) {
     for (const target of cards) {
       if (target === clearer) continue;
+      if (clearsPenalty(clearer.id, target, rulings)) clear(target, clearer.id);
       switch (clearer.id) {
-        case 'FR01':
-          if (target.families.includes('VAGUE')) clear(target, clearer.id);
-          break;
-        case 'FR02':
-          if (target.families.includes('CLIMAT')) clear(target, clearer.id);
-          break;
-        case 'FR27':
-          if (
-            target.families.includes('CREATURE') &&
-            (target.id !== 'FR55' || rulings.phoenixPenaltyClearedByBeastmaster)
-          )
-            clear(target, clearer.id);
-          break;
-        case 'FR50':
-          clear(target, clearer.id);
-          break;
         case 'FR09':
           if (target === validIsland) clear(target, clearer.id);
           break;

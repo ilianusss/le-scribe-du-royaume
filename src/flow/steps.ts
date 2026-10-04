@@ -11,11 +11,23 @@ import {
   type CardId,
   type Family,
 } from '@/data/cards';
-import { canJokerCopy } from '@/engine/score';
+import { DEFAULT_RULINGS } from '@/engine/rulings';
+import { canJokerCopy, clearsPenalty } from '@/engine/score';
 
 import type { ScoringSession } from './session';
 
-export type Step = 'MODE' | 'HAND' | 'CURSED' | 'BONUS' | 'JOKERS' | 'BOOK' | 'ISLAND' | 'ANGEL' | 'CONTEXT' | 'RESULT';
+export type Step =
+  | 'MODE'
+  | 'HAND'
+  | 'CURSED'
+  | 'BONUS'
+  | 'JOKERS'
+  | 'BOOK'
+  | 'ISLAND'
+  | 'ANGEL'
+  | 'CONTEXT'
+  | 'RECAP'
+  | 'RESULT';
 
 export type JokerId = 'FR53' | 'FR52' | 'FR51';
 
@@ -113,11 +125,21 @@ export function familiesAfterChoices(session: ScoringSession, id: CardId): reado
   return [CARDS_BY_ID[copy].families[0]];
 }
 
+export function hasPenaltyAfterChoices(session: ScoringSession, id: CardId): boolean {
+  const copy = session.jokerChoices.FR53;
+  return CARDS_BY_ID[id === 'FR53' && copy && copy !== 'NONE' ? copy : id].hasPenalty;
+}
+
 export function islandTargets(session: ScoringSession): Card[] {
-  if (!finalHand(session).includes('FR09')) return [];
-  return finalHand(session)
-    .filter((id) => id !== 'FR09')
-    .filter((id) => familiesAfterChoices(session, id).some((family) => family === 'VAGUE' || family === 'FLAMME'))
+  const hand = finalHand(session);
+  if (!hand.includes('FR09')) return [];
+  return hand
+    .filter((id) => id !== 'FR09' && hasPenaltyAfterChoices(session, id))
+    .filter((id) => {
+      const families = familiesAfterChoices(session, id);
+      if (!families.some((family) => family === 'VAGUE' || family === 'FLAMME')) return false;
+      return !hand.some((other) => other !== id && clearsPenalty(other, { id, families }, DEFAULT_RULINGS));
+    })
     .map((id) => CARDS_BY_ID[id]);
 }
 
@@ -156,10 +178,23 @@ const GUARDS: Record<Step, (session: ScoringSession) => boolean> = {
   ISLAND: (session) => islandTargets(session).length > 0,
   ANGEL: (session) => angelTargets(session).length > 0,
   CONTEXT: (session) => asksPlayerCount(session) || neededDiscardFamilies(session).length > 0,
-  RESULT: (session) => session.mode !== null,
+  RECAP: (session) => session.game !== null,
+  RESULT: (session) => session.mode !== null && session.game === null,
 };
 
-const ORDER: Step[] = ['MODE', 'HAND', 'CURSED', 'BONUS', 'JOKERS', 'BOOK', 'ISLAND', 'ANGEL', 'CONTEXT', 'RESULT'];
+const ORDER: Step[] = [
+  'MODE',
+  'HAND',
+  'CURSED',
+  'BONUS',
+  'JOKERS',
+  'BOOK',
+  'ISLAND',
+  'ANGEL',
+  'CONTEXT',
+  'RECAP',
+  'RESULT',
+];
 
 export function shownSteps(session: ScoringSession): Step[] {
   return ORDER.filter((step) => GUARDS[step](session));

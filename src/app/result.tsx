@@ -3,13 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
-import { CARDS_BY_ID, FAMILY_NAMES, type CardId } from '@/data/cards';
+import { CARDS_BY_ID, type CardId } from '@/data/cards';
 import type { CardTrace, MaskReason } from '@/engine/types';
 import { playerName } from '@/flow/game';
 import { scoreSession } from '@/flow/session';
 import { Button } from '@/ui/Button';
-import { ConfirmDialog } from '@/ui/ConfirmDialog';
-import { cardName } from '@/ui/cardDisplay';
+import { cardNameWithChoice } from '@/ui/cardDisplay';
 import { copy, number, signed } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
@@ -19,21 +18,6 @@ import { Vitrail } from '@/ui/Vitrail';
 
 const PANE_STEP = 90;
 const COUNT_DURATION = 700;
-
-function displayName(trace: CardTrace): string {
-  const name = cardName(trace.id);
-  const chosen = trace.chosen;
-  if (!chosen) return name;
-  switch (chosen.kind) {
-    case 'copy':
-      return `${name} → ${cardName(chosen.cardId)}`;
-    case 'book':
-      return `${name} : ${cardName(chosen.target)} devient ${FAMILY_NAMES[chosen.family]}`;
-    case 'island':
-    case 'angel':
-      return `${name} → ${cardName(chosen.target)}`;
-  }
-}
 
 function byCards(ids: CardId[]): string {
   return copy.resultMaskedBy([...new Set(ids)].map((id) => CARDS_BY_ID[id].nameWithArticle).join(', '));
@@ -86,7 +70,7 @@ function Row({ trace }: { trace: CardTrace }) {
   return (
     <View style={[styles.row, trace.masked && styles.maskedRow]}>
       <View style={styles.nameCell}>
-        <Text style={[styles.name, trace.masked && styles.dim]}>{displayName(trace)}</Text>
+        <Text style={[styles.name, trace.masked && styles.dim]}>{cardNameWithChoice(trace.id, trace.chosen)}</Text>
         {tags.map((tag) => (
           <Text key={tag} style={styles.tag}>
             {tag}
@@ -115,7 +99,6 @@ export default function Result() {
   const { player } = useLocalSearchParams<{ player?: string }>();
   const viewed = player && game ? game.finished[Number(player) - 1] : undefined;
   const session = viewed ?? current;
-  const [abandoning, setAbandoning] = useState(false);
   const result = useMemo(() => scoreSession(session), [session]);
   const reduced = useReducedMotion();
   const [settled, setSettled] = useState(false);
@@ -183,48 +166,22 @@ export default function Result() {
               )}
             </View>
             <Text style={styles.tiebreak}>{copy.resultTiebreak(result.tieBreak)}</Text>
-            {!viewed && (
+            {!viewed && !game && (
               <View style={styles.actions}>
-                {game ? (
-                  <Button
-                    label={game.finished.length + 1 === game.playerCount ? copy.gameRanking : copy.gameNext}
-                    onPress={() => {
-                      const last = game.finished.length + 1 === game.playerCount;
-                      dispatch({ type: 'NEXT_PLAYER' });
-                      if (last) router.push('/ranking');
-                      else router.dismissTo('/hand');
-                    }}
-                  />
-                ) : (
-                  <Button
-                    label={copy.resultNew}
-                    onPress={() => {
-                      dispatch({ type: 'NEW_HAND' });
-                      router.dismissTo('/hand');
-                    }}
-                  />
-                )}
+                <Button
+                  label={copy.resultNew}
+                  onPress={() => {
+                    dispatch({ type: 'NEW_HAND' });
+                    router.dismissTo('/hand');
+                  }}
+                />
                 <Button label={copy.resultEdit} variant="secondary" onPress={() => router.dismissTo('/hand')} />
-                {game ? (
-                  <Button label={copy.gameAbandon} variant="text" onPress={() => setAbandoning(true)} />
-                ) : (
-                  <Button label={copy.resultMode} variant="text" onPress={() => router.dismissTo('/')} />
-                )}
+                <Button label={copy.resultMode} variant="text" onPress={() => router.dismissTo('/')} />
               </View>
             )}
           </Animated.View>
         </View>
       </ScrollView>
-      <ConfirmDialog
-        visible={abandoning}
-        message={copy.gameAbandonConfirm}
-        onCancel={() => setAbandoning(false)}
-        onConfirm={() => {
-          setAbandoning(false);
-          dispatch({ type: 'END_GAME' });
-          router.dismissTo('/');
-        }}
-      />
     </Screen>
   );
 }

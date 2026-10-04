@@ -1,7 +1,7 @@
 import { Redirect, router } from 'expo-router';
 import { Hand, Users } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { MAX_PLAYERS, MIN_PLAYERS } from '@/flow/session';
 import { ArchWindow, WINDOW_HEIGHT, WINDOW_WIDTH } from '@/ui/ArchWindow';
@@ -20,7 +20,6 @@ export default function Setup() {
   const { width } = useWindowDimensions();
   const [game, setGame] = useState(false);
   const [players, setPlayers] = useState<number | null>(null);
-  const [withNames, setWithNames] = useState(false);
   const [names, setNames] = useState<string[]>([]);
   const [focusedField, setFocusedField] = useState<number | null>(null);
   const fields = useRef<(TextInput | null)[]>([]);
@@ -31,6 +30,7 @@ export default function Setup() {
   const windowWidth = stacked ? WINDOW_WIDTH : Math.min(WINDOW_WIDTH, (Math.min(width, maxWidth) - gutter * 2 - spacing.l) / 2);
   const windowHeight = windowWidth * (WINDOW_HEIGHT / WINDOW_WIDTH);
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const namesComplete = players !== null && Array.from({ length: players }, (_, i) => names[i]?.trim()).every(Boolean);
 
   return (
     <Screen>
@@ -62,20 +62,7 @@ export default function Setup() {
           <View style={styles.players}>
             <Text style={styles.heading}>{copy.setupPlayers}</Text>
             <SegmentedControl label={copy.setupPlayers} options={PLAYER_OPTIONS} value={players} onChange={setPlayers} />
-            {players !== null && (
-              <View style={styles.toggle}>
-                <Text style={styles.toggleLabel}>{copy.setupNames}</Text>
-                <Switch
-                  value={withNames}
-                  onValueChange={setWithNames}
-                  accessibilityLabel={copy.setupNames}
-                  trackColor={{ true: colors.lumiere, false: colors.plombClair }}
-                  thumbColor={colors.velin}
-                />
-              </View>
-            )}
             {players !== null &&
-              withNames &&
               Array.from({ length: players }, (_, index) => (
                 <TextInput
                   key={index}
@@ -102,12 +89,12 @@ export default function Setup() {
           </View>
         )}
       </ScrollView>
-      {game && players !== null && (
+      {game && players !== null && namesComplete && (
         <View style={styles.footer}>
           <Button
             label={copy.setupStart}
             onPress={() => {
-              dispatch({ type: 'START_GAME', mode, playerCount: players, names: withNames ? names : [] });
+              dispatch({ type: 'START_GAME', mode, playerCount: players, names });
               router.push('/hand');
             }}
           />
@@ -123,8 +110,6 @@ const styles = StyleSheet.create({
   windowsStacked: { flexDirection: 'column', alignItems: 'center' },
   players: { gap: spacing.m },
   heading: { fontFamily: fonts.heading, fontSize: 22, lineHeight: 28, color: colors.velin },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.m, minHeight: 56 },
-  toggleLabel: { ...type.body, color: colors.velin, flex: 1 },
   input: {
     ...type.input,
     color: colors.velin,

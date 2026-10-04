@@ -207,7 +207,7 @@ See tests 65 and 66 (§10.4).
 Several cards require a player choice. **The player makes every choice in the app; the app never optimises** (a non-optimal choice is the player's responsibility).
 - **Jokers (Doppelgänger, Mirage, Métamorphe): the player chooses** in the app (UI spec §A7b) which card each joker copies, or « Ne copie rien ». Only named cards of the joker's eligible families are offered (no "generic family" copy in the app). The engine takes these choices as input.
 - **Livre des mutations: the player chooses** in the app (UI spec §A7c) which other card changes family and into which family, or « Ne change rien ». The engine takes this choice as input.
-- **Île: the player chooses** in the app (UI spec §A7d) which Vague or Flamme has its malus cleared, or « N'efface rien ». The step is skipped when no other card is a Vague or a Flamme (after the jokers and the Livre).
+- **Île: the player chooses** in the app (UI spec §A7d) which Vague or Flamme has its malus cleared, or « N'efface rien ». The app only offers cards whose malus the Île can still clear, and skips the step when there is none (see the table below).
 - **Ange: the player chooses** in the app (UI spec §A7e) which other card is protected, or « Ne protège rien ».
 
 | Card | Option space |
@@ -216,10 +216,14 @@ Several cards require a player choice. **The player makes every choice in the ap
 | Mirage | any (name, family) of an eligible card **in the whole game** (not only the hand), or a "generic" card of an eligible family (family only, no name), or none |
 | Métamorphe | same as Mirage with its own eligible families |
 | Livre des mutations | (any other card in hand except Phénix) × (any family except Joker), or none |
-| Île | any VAGUE or FLAMME card in hand, or none |
+| Île | any VAGUE or FLAMME card in hand that has a malus not already cleared by another card, or none |
 | Ange | any other card in hand, or none |
 
-The table describes what the player may choose. The Livre's family also excludes the target's current family, which would change nothing. Île's targets are judged on families after the jokers and the Livre (step 1).
+The table describes what the player may choose. The Livre's family also excludes the target's current family, which would change nothing. Île's targets are judged on families after the jokers and the Livre (step 1), and the app narrows them further to the choices that can change the score:
+- a card with no malus is never offered (a Mirage or a Métamorphe has no malus of its own: it copies a name and a family; a Doppelgänger takes the malus of the card it copies);
+- a card whose malus is already cleared by the Montagne, the Caverne, the Dresseur or the Rune de Protection is never offered (step 2 clears a malus once).
+
+The engine itself stays permissive: it accepts any VAGUE or FLAMME target, clears its malus if it still has one, and ignores the choice otherwise.
 
 Cards that add an extra card (Nécromancien, Leprechaun, Génie, cursed item Portail) require **no choice** from the engine: the user enters the final hand including the extra card. The app may validate that a card added by the Nécromancien belongs to an eligible family.
 
@@ -474,7 +478,7 @@ Names 🟡 (except the 3 ✅), values 🟡 (verify on cards). Timing: *N'IMPORTE
 | Hand (7–9 cards) | always | Card picker with accent-insensitive search ("elementa" → Élémental…), grouped by family with family colours. Only show cards of the active mode (e.g. the right Beffroi). |
 | Joker copies (Doppelgänger, Mirage, Métamorphe) | if a joker is in the final hand | Chosen by the player: a named card of the eligible families, or « Ne copie rien » (§4.2). |
 | Livre des mutations | if the Livre is in the final hand | Chosen by the player: another card (not the Phénix) and a new family (not Joker), or « Ne change rien » (§4.2). |
-| Île | if the Île is in the final hand and another card is a Vague or a Flamme | Chosen by the player, or « N'efface rien » (§4.2). |
+| Île | if the Île is in the final hand and another card is a Vague or a Flamme with a malus still to clear | Chosen by the player, or « N'efface rien » (§4.2). |
 | Ange | if the Ange is in the final hand | Chosen by the player, or « Ne protège rien » (§4.2). |
 | Discard area | only if a Mort-vivant is in hand | Multi-select of cards not in the hand. Hide the input otherwise. |
 | Player count | if Génie or Longue-vue | Ask once per game session. |

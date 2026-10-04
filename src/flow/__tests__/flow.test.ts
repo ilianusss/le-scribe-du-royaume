@@ -348,17 +348,35 @@ describe('Île and Ange', () => {
   });
 
   test('Île targets follow the jokers and the Livre, Phénix included', () => {
-    let session = run(start('BASE'), ...add('FR09', 'FR55', 'FR01', 'FR52', 'FR49'));
-    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55']);
-    session = sessionReducer(session, { type: 'SET_JOKER', joker: 'FR52', choice: 'FR08' });
-    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55', 'FR52']);
-    session = sessionReducer(session, { type: 'SET_BOOK', choice: { target: 'FR01', family: 'FLAMME' } });
-    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55', 'FR01', 'FR52']);
-    session = sessionReducer(session, { type: 'SET_ISLAND', choice: 'FR01' });
-    expect(session.islandChoice).toBe('FR01');
+    let session = run(start('BASE'), ...add('FR09', 'FR55', 'FR53', 'FR49', 'FR08', 'FR37', 'FR05'));
+    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55', 'FR08']);
+    session = sessionReducer(session, { type: 'SET_JOKER', joker: 'FR53', choice: 'FR08' });
+    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55', 'FR53', 'FR08']);
+    session = sessionReducer(session, { type: 'SET_BOOK', choice: { target: 'FR37', family: 'FLAMME' } });
+    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR55', 'FR53', 'FR08', 'FR37']);
+    session = sessionReducer(session, { type: 'SET_ISLAND', choice: 'FR37' });
+    expect(session.islandChoice).toBe('FR37');
     session = sessionReducer(session, { type: 'CLEAR_BOOK' });
     expect(session.islandChoice).toBeNull();
-    expect(sessionReducer(session, { type: 'SET_ISLAND', choice: 'FR01' }).islandChoice).toBeNull();
+    expect(sessionReducer(session, { type: 'SET_ISLAND', choice: 'FR37' }).islandChoice).toBeNull();
+  });
+
+  test('the Île only offers cards whose malus it can still erase', () => {
+    const targets = (...ids: CardId[]) => islandTargets(run(start('BASE'), ...add(...ids))).map((c) => c.id);
+    expect(targets('FR09', 'FR06')).toEqual([]);
+    expect(shownSteps(run(start('BASE'), ...add('FR09', 'FR06')))).not.toContain('ISLAND');
+    expect(targets('FR09', 'FR08')).toEqual(['FR08']);
+    expect(targets('FR09', 'FR08', 'FR01')).toEqual([]);
+    expect(targets('FR09', 'FR08', 'FR50')).toEqual([]);
+    expect(targets('FR09', 'FR55', 'FR02')).toEqual([]);
+  });
+
+  test('a Mirage keeps its own malus, a Doppelgänger takes the one it copies', () => {
+    let session = run(start('BASE'), ...add('FR09', 'FR52', 'FR53', 'FR08'));
+    session = sessionReducer(session, { type: 'SET_JOKER', joker: 'FR52', choice: 'FR08' });
+    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR08']);
+    session = sessionReducer(session, { type: 'SET_JOKER', joker: 'FR53', choice: 'FR08' });
+    expect(islandTargets(session).map((c) => c.id)).toEqual(['FR53', 'FR08']);
   });
 
   test('Ange targets are the other cards; removing the target clears the answer', () => {

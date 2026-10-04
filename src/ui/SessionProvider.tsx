@@ -36,6 +36,7 @@ export const STEP_ROUTES: Record<Step, Href> = {
   ISLAND: '/island',
   ANGEL: '/angel',
   CONTEXT: '/end',
+  RECAP: '/recap',
   RESULT: '/result',
 };
 

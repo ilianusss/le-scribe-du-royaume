@@ -6,7 +6,7 @@ Last updated: 2026-10-04.
 
 ## 1. State in one paragraph
 
-All four build phases of the original brief are done (setup, data + engine, search + flow, screens, vitrail + motion), plus several product changes requested afterwards (player-made choices for every choice card, a multi-player game mode with ranking, optional player names, extension modules). Everything is committed on `main`. Checks at the last commit: `npx jest` 156 tests pass, `npx tsc --noEmit` clean, `npx expo lint` clean. Every flow was walked on web (headless Chrome, iPhone-size viewport) with no console errors. Nothing has been run on an iPhone yet (no Xcode on the dev machine).
+All four build phases of the original brief are done (setup, data + engine, search + flow, screens, vitrail + motion), plus several product changes requested afterwards (player-made choices for every choice card, a multi-player game mode with ranking and required player names, extension modules, a hand recap instead of a per-player score in a game). Checks at the last change: `npx jest` 159 tests pass, `npx tsc --noEmit` clean, `npx expo lint` clean. Every flow was walked on web (headless Chrome, iPhone-size viewport) with no console errors. Nothing has been run on an iPhone yet (no Xcode on the dev machine).
 
 ## 2. How to work here
 
@@ -29,7 +29,7 @@ All four build phases of the original brief are done (setup, data + engine, sear
 - `src/data/cards.ts`: 71 cards with ID, name, `nameWithArticle` (le / la / l' / les, used in result reasons), families, strength, module, texts. `Mode` = `BASE | CURSED | FAMILIES | FULL`; always use `hasExtraFamilies(mode)` / `hasCursedItems(mode)`. `cardPool`, `modeFamilies`, `HAND_SIZE`.
 - `src/data/cursedItems.ts`: 24 cursed items.
 - `src/engine/` (pure TS):
-  - `score.ts`: `scoreHand(hand, context, choices)` follows reference §4 step by step; returns total, per-card trace, cursed items, tie-break. `cursedValue`, `canJokerCopy`, `jokerFamilies`.
+  - `score.ts`: `scoreHand(hand, context, choices)` follows reference §4 step by step; returns total, per-card trace, cursed items, tie-break. `cursedValue`, `canJokerCopy`, `jokerFamilies`, `clearsPenalty` (the step-2 clearing rules of the Montagne, the Caverne, the Dresseur and the Rune de Protection, also used by the flow to narrow the Île's targets).
   - `cardLogic.ts`: per-card rules keyed by ID (`BONUS`, `MALUS`, `BLANKS`, `SELF_MASK` returning a `MaskReason`, `ARMY_WORD_MALUS`).
   - `types.ts`: `Choices` (doppelganger, mirage, shapeshifter, book, island, angel), `CardTrace` (`maskReason`, `clearedBy`, `armyWordClearedBy`, `familyChangedBy`, `chosen`), `ScoreResult`.
   - `rulings.ts`: the six rulings of `CLAUDE.md`.
@@ -37,16 +37,16 @@ All four build phases of the original brief are done (setup, data + engine, sear
 - `src/search/`: `normalise` (accents, apostrophes, hyphens) and `suggest` (prefix > word prefix > contains, max 6, match range for bold).
 - `src/flow/`:
   - `session.ts`: one player's `ScoringSession` and `sessionReducer` (hand, cursed items, bonus card, joker / book / island / angel answers, player count, discard, optional `GameContext`). `prune` clears answers that no longer apply after any change. `scoreSession` builds the engine call. `sessionDiscard` merges the game's shared discard with the player's.
-  - `steps.ts`: step order `MODE HAND CURSED BONUS JOKERS BOOK ISLAND ANGEL CONTEXT RESULT`, guards (`shownSteps`, `nextStep`, `previousStep`, `canContinue`), target lists (`bonusPool`, `jokerTargets`, `bookTargets`, `bookFamilies`, `islandTargets`, `angelTargets`), `familiesAfterChoices`, `asksPlayerCount`, `neededDiscardFamilies`.
+  - `steps.ts`: step order `MODE HAND CURSED BONUS JOKERS BOOK ISLAND ANGEL CONTEXT RECAP RESULT` (`RECAP` only in a game, `RESULT` only outside one), guards (`shownSteps`, `nextStep`, `previousStep`, `canContinue`), target lists (`bonusPool`, `jokerTargets`, `bookTargets`, `bookFamilies`, `islandTargets`, `angelTargets`), `familiesAfterChoices`, `hasPenaltyAfterChoices`, `asksPlayerCount`, `neededDiscardFamilies`.
   - `game.ts`: `AppState { session, game }`, `appReducer` (all session actions + `START_GAME`, `NEXT_PLAYER`, `PREVIOUS_PLAYER`, `NEW_GAME`, `END_GAME`), `gameContext` (player count, cards and cursed items already used, shared discard), `playerName`, `standings` (total desc, then lowest total base strength, equal again = shared rank).
-- `src/ui/`: `theme.ts` tokens, `copy.ts` (all French strings), `SessionProvider.tsx` (context on `appReducer`, `STEP_ROUTES`, `goNext`, `goBack`), shared components: `Screen` (safe area, keyboard, lattice backdrop), `Header` (auto "Joueur n sur N" eyebrow in a game), `Button`, `CardSearch`, `SuggestionRow`, `Stepper`, `SegmentedControl`, `ConfirmDialog`, `Pane` (arch SVG, family glass, joker gradient, Phénix split, crack, fill and reveal animations, `copyOf` / `asFamily` overrides), `Vitrail`, `ArchWindow`, `TargetChoice` (shared screen for Île and Ange), `FamilyIcon`, `cardDisplay.ts`, `pressable.ts` (web press state type).
-- `src/app/` routes: `index` (Accueil), `modules` (Le Trésor maudit), `setup` (Une main / Une partie, player count, optional names), `hand`, `cursed`, `bonus`, `jokers`, `book`, `island`, `angel`, `end` (Fin de partie), `result` (also read-only `?player=n` from the ranking), `ranking`.
+- `src/ui/`: `theme.ts` tokens, `copy.ts` (all French strings), `SessionProvider.tsx` (context on `appReducer`, `STEP_ROUTES`, `goNext`, `goBack`), shared components: `Screen` (safe area, keyboard, lattice backdrop), `Header` (auto "Nom · n sur N" eyebrow in a game), `Button`, `CardSearch`, `SuggestionRow`, `Stepper`, `SegmentedControl`, `ConfirmDialog`, `Pane` (arch SVG, family glass, joker gradient, Phénix split, crack, fill and reveal animations, `copyOf` / `asFamily` overrides), `Vitrail`, `ArchWindow`, `TargetChoice` (shared screen for Île and Ange), `FamilyIcon`, `cardDisplay.ts` (`cardNameWithChoice` formats « Mirage → Orage » for the recap and the result), `pressable.ts` (web press state type).
+- `src/app/` routes: `index` (Accueil), `modules` (Le Trésor maudit), `setup` (Une main / Une partie, player count, names), `hand`, `cursed`, `bonus`, `jokers`, `book`, `island`, `angel`, `end` (Fin de partie), `recap` (Récapitulatif, game only), `result` (une main, and read-only `?player=n` from the ranking), `ranking`.
 
 ### Navigation model
 
 - Steps are pushed in order; back pops (`goBack`). Hand screen disables the iOS swipe-back (it confirms « Abandonner cette main ? » when cards were entered).
 - Result: « Nouvelle main » / « Modifier la main » use `router.dismissTo('/hand')`.
-- Game: « Joueur suivant » dispatches `NEXT_PLAYER` then `dismissTo('/hand')`, so the stack stays short. Back from a later player's hand dispatches `PREVIOUS_PLAYER` and pushes `/result` (the in-progress hand of that player is lost, hence the confirmation). Last player: `NEXT_PLAYER` then push `/ranking`; back from the ranking dispatches `PREVIOUS_PLAYER` then `router.back()`.
+- Game: the hand ends on `/recap`, never on `/result`. « Joueur suivant » dispatches `NEXT_PLAYER` then `dismissTo('/hand')`, so the stack stays short. Back from a later player's hand dispatches `PREVIOUS_PLAYER` and pushes `/recap` (the in-progress hand of that player is lost, hence the confirmation). Last player: `NEXT_PLAYER` then push `/ranking`; back from the ranking dispatches `PREVIOUS_PLAYER` then `router.back()`.
 
 ## 4. Product decisions taken with the user (not all obvious from the specs)
 
@@ -56,20 +56,23 @@ All four build phases of the original brief are done (setup, data + engine, sear
 - Result reasons and tags: « Masquée · par l'Inondation », « par son propre malus », « sans Flamme », « sans Vague », « sans Armée », « avec un Climat », « avec une Vague », « Malus effacé · par la Montagne », « Mot Armée effacé · par les Éclaireurs » (only on cards whose malus mentions Armée).
 - Primary button label on every step: « Compter les points » when the next shown screen is the result, « Continuer » otherwise.
 - Extension modules: after « Extension », the player picks Familles supplémentaires (8 cards), Objets maudits (7 cards) or Les deux (8 cards). The Accueil sub-line for Extension is now just « Le Trésor maudit ».
-- Game mode: 2 to 6 players, names optional (switch « Saisir les noms des joueurs », empty field keeps « Joueur n »), each card and cursed item unique across players, player count never asked again, discard counts prefilled from the last entry, ranking with tie-break, read-only per-player result, « Nouvelle partie » keeps only mode, player count and names.
+- Game mode: 2 to 6 players, **names are required** (one field per player as soon as the count is picked, « Commencer la partie » appears only once all are filled), each card and cursed item unique across players, player count never asked again, discard counts prefilled from the last entry, ranking with tie-break, read-only per-player result, « Nouvelle partie » keeps only mode, player count and names.
+- In a game no score is shown before the ranking: each hand ends on the `/recap` screen (UI spec §A8b), which lists the final hand with the choices made and the cursed item names (no values, no total), and offers « Joueur suivant » / « Voir le classement », « Modifier la main » and « Abandonner la partie ». The breakdown of a hand is read afterwards from the ranking.
+- Île: the screen only offers cards whose malus it can still erase (a Vague or a Flamme, after the jokers and the Livre, that has a malus not already cleared by the Montagne, the Caverne, the Dresseur or the Rune de Protection), and is skipped when there is none. Reference §4.2 and UI spec §A7d. The engine was not made stricter: `clearsPenalty` was extracted from step 2 so the flow and the engine share the same rule.
 - The vitrail empty hint « Ta première carte » is commented out on purpose in `src/app/hand.tsx` (user's choice). Leave it.
 - Card images folder `assets/images/` exists with `images.txt` (expected names), but images are not used anywhere (UI spec B5 forbids card scans); do not wire them unless asked.
 
 ## 5. Open items and known limitations
 
 - Pending the user's check on physical cards (do not block): Arbre-Monde value, cursed item names / values, expansion card wording (reference §0.4).
-- Microcopy written by the agent and accepted or delegated by the user: everything in §A11 marked with the setup, game, ranking, modules, jokers, book, island and angel keys. The user approved most of it; island / angel texts were not explicitly confirmed.
-- Web-only cosmetic: the `Switch` on web shows react-native-web's default teal thumb when on (iOS uses `trackColor` / `thumbColor` correctly). Same for « La Licorne est dans la défausse ».
+- Microcopy written by the agent and accepted or delegated by the user: everything in §A11 marked with the setup, game, ranking, modules, jokers, book, island, angel and recap keys. The user approved most of it; island / angel / recap texts were not explicitly confirmed.
+- Web-only cosmetic: the `Switch` on web shows react-native-web's default teal thumb when on (iOS uses `trackColor` / `thumbColor` correctly). Only « La Licorne est dans la défausse » still uses one.
 - No persistence: quitting the app mid-game loses the game (v1 by design).
 - Tapping a result row to expand an explanation is deferred (spec §A9).
 - `npm audit` reports moderate issues in tooling dependencies; the user said not to run `npm audit fix` (it can break Expo SDK pins).
 - `docs/trace.md` is the user's copy of an older report; parts of it are outdated (it still mentions the optimiser).
 - Nothing has been tested on a device. See the checklist below.
+- Engine inconsistency noticed but **not** fixed (out of scope): step 2 of `scoreHand` switches on `clearer.id`, while the bonus and malus of step 7 use `nameId`. A Doppelgänger that copies the Montagne, the Caverne, the Dresseur, the Rune de Protection, the Éclaireurs or the Navire de guerre therefore gets their bonus but not their clearing effect. Ask the user before touching it: it changes scores.
 
 ## 6. Manual checklist for an iPhone (Expo Go or a development build)
 
@@ -85,8 +88,8 @@ All four build phases of the original brief are done (setup, data + engine, sear
 10. Jokers screen: tapping a Doppelgänger row does not open the keyboard and the pane changes colour; in the Mirage field, done picks the first suggestion and « Changer » brings the search back.
 11. Livre screen: tap a card then a family chip; the row and the pane colour change at once.
 12. Île and Ange screens: answers show at once; back from the result returns to the Ange screen with the answer kept.
-13. Game mode with names: « Suivant » on the keyboard chains the name fields, the last one closes the keyboard, « Commencer la partie » stays visible above the keyboard.
-14. Game mode with 3 players: « Joueur suivant », back to the previous player, ranking, tap a player for the read-only result, « Nouvelle partie » keeps the names.
+13. Game mode: « Suivant » on the keyboard chains the name fields, the last one closes the keyboard, « Commencer la partie » only appears once every name is filled and stays visible above the keyboard.
+14. Game mode with 3 players: the recap shows the hand and the choices with no score, « Joueur suivant », back to the previous player's recap, ranking, tap a player for the read-only result, « Nouvelle partie » keeps the names.
 15. Extension modules: Objets maudits only gives 7-card hands and the cursed items screen; Familles supplémentaires only gives 8-card hands and no cursed items screen.
 
 ## 7. Commit history (main)

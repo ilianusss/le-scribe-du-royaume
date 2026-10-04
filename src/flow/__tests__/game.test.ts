@@ -1,7 +1,7 @@
 import type { CardId } from '@/data/cards';
 import { appReducer, currentPlayer, INITIAL_STATE, playerName, standings, type AppAction, type AppState } from '@/flow/game';
 import { scoreSession } from '@/flow/session';
-import { bonusPool, shownSteps } from '@/flow/steps';
+import { bonusPool, canContinue, nextStep, shownSteps } from '@/flow/steps';
 
 function run(...actions: AppAction[]): AppState {
   return actions.reduce(appReducer, INITIAL_STATE);
@@ -30,6 +30,16 @@ describe('game', () => {
     state = appReducer(state, next);
     expect(currentPlayer(state.game!)).toBe(2);
     expect(state.session.hand).toEqual([]);
+  });
+
+  test('a game ends each hand on the recap, never on the result', () => {
+    const state = run({ type: 'START_GAME', mode: 'BASE', playerCount: 2 }, ...add(...P1));
+    const steps = shownSteps(state.session);
+    expect(steps[steps.length - 1]).toBe('RECAP');
+    expect(steps).not.toContain('RESULT');
+    expect(nextStep(state.session, 'HAND')).toBe('RECAP');
+    expect(canContinue(state.session, 'RECAP')).toBe(true);
+    expect(shownSteps({ ...state.session, game: null })).toContain('RESULT');
   });
 
   test('cards and cursed items of previous players are unavailable', () => {

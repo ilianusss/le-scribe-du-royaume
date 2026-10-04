@@ -1,5 +1,6 @@
 import { CARDS_BY_ID, FAMILY_NAMES, type Card, type CardId } from '@/data/cards';
 import type { CursedItem } from '@/data/cursedItems';
+import type { ChosenOption } from '@/engine/types';
 
 import { number, signed } from './copy';
 import type { PaneFamily } from './theme';
@@ -13,3 +14,17 @@ export const cursedFamilyLabel = (): string => 'Objet maudit';
 export const cursedValueLabel = (item: CursedItem): string => signed(item.value);
 
 export const cardName = (id: CardId): string => CARDS_BY_ID[id].name;
+
+export function cardNameWithChoice(id: CardId, chosen: ChosenOption | null): string {
+  const name = cardName(id);
+  if (!chosen) return name;
+  switch (chosen.kind) {
+    case 'copy':
+      return `${name} → ${cardName(chosen.cardId)}`;
+    case 'book':
+      return `${name} : ${cardName(chosen.target)} devient ${FAMILY_NAMES[chosen.family]}`;
+    case 'island':
+    case 'angel':
+      return `${name} → ${cardName(chosen.target)}`;
+  }
+}

@@ -23,7 +23,6 @@ export const copy = {
   gamePlayer: (n: number) => `Joueur ${n}`,
   gamePlayerOf: (n: number, total: number, name: string | null) =>
     name ? `${name} · ${n} sur ${total}` : `Joueur ${n} sur ${total}`,
-  setupNames: 'Saisir les noms des joueurs',
   gameNext: 'Joueur suivant',
   gameRanking: 'Voir le classement',
   gameAbandon: 'Abandonner la partie',
@@ -77,6 +76,8 @@ export const copy = {
   endStepperMinus: (famille: string) => `Retirer une carte ${famille}`,
   endStepperPlus: (famille: string) => `Ajouter une carte ${famille}`,
   endStepperValue: (famille: string, n: number) => `${famille} : ${n}`,
+  recapTitle: 'Récapitulatif',
+  recapQuestion: 'Cette main est-elle correcte ?',
   ctaContinue: 'Continuer',
   ctaScore: 'Compter les points',
   resultTitle: 'Résultat',

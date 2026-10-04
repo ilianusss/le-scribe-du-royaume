@@ -38,7 +38,7 @@ export default function Hand() {
   const leave = () => {
     if (game && game.finished.length > 0) {
       dispatch({ type: 'PREVIOUS_PLAYER' });
-      router.push('/result');
+      router.push('/recap');
     } else if (router.canGoBack()) router.back();
     else router.replace('/');
   };
