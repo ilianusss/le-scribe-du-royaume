@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "platforms": ["ios", "web"],
     "orientation": "portrait",
-    "icon": "./assets/images/app/icon.png",
+    "icon": "./assets/images/app/logo.png",
     "scheme": "scribe-du-royaume",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#17142B",
     "web": {
       "output": "static",
-      "favicon": "./assets/images/app/favicon.png"
+      "favicon": "./assets/images/app/logo.png"
     },
     "plugins": [
       "expo-router",
@@ -19,8 +19,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#17142B",
-          "image": "./assets/images/app/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/app/logo.png",
+          "imageWidth": 200
         }
       ]
     ],

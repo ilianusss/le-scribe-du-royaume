@@ -3,15 +3,12 @@ Images attendues — Le Scribe du Royaume
 
 Format : PNG. Nom de fichier = <ID>-<nom sans accents>.png (l'ID est celui du document de référence).
 Un fichier absent n'est pas une erreur : l'app utilise une image par défaut.
-  - app/ : les fichiers actuels sont les images par défaut d'Expo ; remplace-les en gardant le même nom.
   - cards/ et objets-maudits/ : sans image, l'app affiche l'icône de la famille (UI spec §B5).
 
 assets/images
 ├── images.txt
 ├── app
-│   ├── icon.png            icône iOS, 1024 × 1024, sans transparence
-│   ├── splash-icon.png     logo de l'écran de lancement (fond #17142B)
-│   └── favicon.png         icône de l'onglet (web, test uniquement)
+│   └── logo.png            logo unique : icône iOS, écran de lancement et favicon (carré, sans transparence)
 ├── cards
 │   ├── terrain         Terrain
 │   │   ├── FR01-montagne.png

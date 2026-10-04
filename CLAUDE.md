@@ -47,7 +47,7 @@ src/engine/__tests__ acceptance tests (reference doc §10) and data sanity tests
 src/search/          name normalisation and suggestion ranking (pure, tested)
 src/flow/            session reducer, step guards and game (several players, ranking) (pure, tested)
 src/ui/              theme.ts and shared components (Pane, Vitrail, CardSearch, SuggestionRow, Stepper…)
-assets/images/       app/ (icon, splash, favicon), cards/<famille>/, objets-maudits/ — expected file names in assets/images/images.txt
+assets/images/       app/ (logo), cards/<famille>/, objets-maudits/ — expected file names in assets/images/images.txt
 docs/                the two specs
 ```
  
