@@ -3,7 +3,10 @@
     "name": "Le Scribe du Royaume",
     "slug": "scribe-du-royaume",
     "version": "1.0.0",
-    "platforms": ["ios", "web"],
+    "platforms": [
+      "ios",
+      "web"
+    ],
     "orientation": "portrait",
     "icon": "./assets/images/app/logo.png",
     "scheme": "scribe-du-royaume",
@@ -27,6 +30,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.ilianus.scribe-du-royaume"
     }
   }
 }
