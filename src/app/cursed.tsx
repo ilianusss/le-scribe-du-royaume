@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { hasCursedItems } from '@/data/cards';
 import { CURSED_ITEMS, CURSED_ITEMS_BY_ID } from '@/data/cursedItems';
@@ -11,6 +11,7 @@ import { CardSearch } from '@/ui/CardSearch';
 import { copy, number, signed } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, radius, spacing, type } from '@/ui/theme';
@@ -27,7 +28,7 @@ export default function Cursed() {
   return (
     <Screen>
       <Header title={copy.cursedTitle} onBack={() => goBack(session, 'CURSED')} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.help}>{copy.cursedHelp}</Text>
         <CardSearch
           items={CURSED_ITEMS}
@@ -62,7 +63,7 @@ export default function Cursed() {
             )
           }
         />
-      </ScrollView>
+      </ScrollArea>
       <View style={styles.footer}>
         {session.cursedItems.length === 0 ? (
           <Button label={copy.cursedNone} variant="secondary" onPress={() => goNext(session, 'CURSED')} />

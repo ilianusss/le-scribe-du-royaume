@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { FAMILY_NAMES } from '@/data/cards';
 import { MAX_DISCARD, MAX_PLAYERS, MIN_PLAYERS, sessionDiscard } from '@/flow/session';
@@ -8,6 +8,7 @@ import { Button } from '@/ui/Button';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { SegmentedControl } from '@/ui/SegmentedControl';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { Stepper } from '@/ui/Stepper';
@@ -25,7 +26,7 @@ export default function End() {
   return (
     <Screen>
       <Header title={copy.endTitle} onBack={() => goBack(session, 'CONTEXT')} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content}>
         {asksPlayerCount(session) && (
           <View style={styles.block}>
             <Text style={styles.heading}>{copy.endPlayers}</Text>
@@ -66,7 +67,7 @@ export default function End() {
             )}
           </View>
         )}
-      </ScrollView>
+      </ScrollArea>
       {canContinue(session, 'CONTEXT') && (
         <View style={styles.footer}>
           <Button label={copy.ctaScore} onPress={() => goNext(session, 'CONTEXT')} />

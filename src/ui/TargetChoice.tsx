@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID, FAMILY_NAMES, type Card, type CardId } from '@/data/cards';
 import type { CardChoice } from '@/flow/session';
@@ -10,6 +10,7 @@ import { cardValue } from './cardDisplay';
 import { copy } from './copy';
 import { Header } from './Header';
 import { Screen } from './Screen';
+import { ScrollArea } from './ScrollArea';
 import { goBack, goNext, useSession } from './SessionProvider';
 import { SuggestionRow } from './SuggestionRow';
 import { colors, fonts, radius, spacing } from './theme';
@@ -61,7 +62,7 @@ export function TargetChoice({ step, title, question, noneLabel, owner, targets,
           };
         })}
       />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content}>
         <Text style={styles.heading}>{question}</Text>
         {choice === null ? (
           <>
@@ -86,7 +87,7 @@ export function TargetChoice({ step, title, question, noneLabel, owner, targets,
             <Button label={copy.bonusChange} variant="text" onPress={() => onChoose(null)} />
           </>
         )}
-      </ScrollView>
+      </ScrollArea>
       {canContinue(session, step) && (
         <View style={styles.footer}>
           <Button label={label} onPress={() => goNext(session, step)} />

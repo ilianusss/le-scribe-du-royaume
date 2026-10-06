@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { type ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID, cardPool, type CardId } from '@/data/cards';
 import { handSize, isHandComplete, missingCards, nextStep } from '@/flow/steps';
@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, radius, spacing, type } from '@/ui/theme';
@@ -91,7 +92,7 @@ export default function Hand() {
         //emptyHint={copy.handFirstCard}
         onPanePress={focusRow}
       />
-      <ScrollView ref={scroll} style={styles.flex} keyboardShouldPersistTaps="handled">
+      <ScrollArea ref={scroll} style={styles.flex} keyboardShouldPersistTaps="handled">
         <View ref={content} style={styles.content}>
           {complete ? (
             chosen
@@ -114,7 +115,7 @@ export default function Hand() {
             />
           )}
         </View>
-      </ScrollView>
+      </ScrollArea>
       {complete && (
         <View style={styles.footer}>
           <Button
