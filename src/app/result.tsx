@@ -1,6 +1,6 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
 import { CARDS_BY_ID, type CardId } from '@/data/cards';
@@ -12,6 +12,7 @@ import { cardNameWithChoice } from '@/ui/cardDisplay';
 import { copy, number, signed } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, useSession } from '@/ui/SessionProvider';
 import { colors, fonts, radius, spacing, type } from '@/ui/theme';
 import { Vitrail } from '@/ui/Vitrail';
@@ -125,7 +126,7 @@ export default function Result() {
         eyebrow={viewed && game ? (playerName(game, Number(player)) ?? copy.gamePlayer(Number(player))) : undefined}
         onBack={() => (viewed ? router.back() : goBack(session, 'RESULT'))}
       />
-      <ScrollView style={styles.flex}>
+      <ScrollArea style={styles.flex}>
         <View
           style={styles.content}
           onStartShouldSetResponderCapture={() => {
@@ -181,7 +182,7 @@ export default function Result() {
             )}
           </Animated.View>
         </View>
-      </ScrollView>
+      </ScrollArea>
     </Screen>
   );
 }

@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID, FAMILY_NAMES, type CardId } from '@/data/cards';
 import { bookFamilies, bookTargets, canContinue, currentFamily, finalHand, nextStep, type JokerId } from '@/flow/steps';
@@ -11,6 +11,7 @@ import { FamilyIcon } from '@/ui/FamilyIcon';
 import { Header } from '@/ui/Header';
 import type { PressState } from '@/ui/pressable';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, familyColors, fonts, minTap, radius, spacing } from '@/ui/theme';
@@ -122,9 +123,9 @@ export default function Book() {
           asFamily: choice !== null && choice !== 'NONE' && choice.target === cardId ? choice.family : undefined,
         }))}
       />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content}>
         {body}
-      </ScrollView>
+      </ScrollArea>
       {canContinue(session, 'BOOK') && (
         <View style={styles.footer}>
           <Button label={label} onPress={() => goNext(session, 'BOOK')} />

@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID, FAMILY_NAMES, type CardId } from '@/data/cards';
 import { CURSED_ITEMS_BY_ID } from '@/data/cursedItems';
@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, fonts, radius, spacing } from '@/ui/theme';
@@ -77,7 +78,7 @@ export default function Recap() {
         })}
         settled
       />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content}>
         <Text style={styles.heading}>{copy.recapQuestion}</Text>
         <View style={styles.list}>
           {finalHand(session).map((id) => {
@@ -125,7 +126,7 @@ export default function Recap() {
           <Button label={copy.resultEdit} variant="secondary" onPress={() => router.dismissTo('/hand')} />
           <Button label={copy.gameAbandon} variant="text" onPress={() => setAbandoning(true)} />
         </View>
-      </ScrollView>
+      </ScrollArea>
       <ConfirmDialog
         visible={abandoning}
         message={copy.gameAbandonConfirm}
