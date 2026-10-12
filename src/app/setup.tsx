@@ -1,7 +1,7 @@
 import { Redirect, router } from 'expo-router';
 import { Hand, Users } from 'lucide-react-native';
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { MAX_PLAYERS, MIN_PLAYERS } from '@/flow/session';
 import { ArchWindow, WINDOW_HEIGHT, WINDOW_WIDTH } from '@/ui/ArchWindow';
@@ -9,6 +9,7 @@ import { Button } from '@/ui/Button';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { SegmentedControl } from '@/ui/SegmentedControl';
 import { useSession } from '@/ui/SessionProvider';
 import { colors, fonts, gutter, maxWidth, radius, spacing, type } from '@/ui/theme';
@@ -35,7 +36,7 @@ export default function Setup() {
   return (
     <Screen>
       <Header title={copy.setupTitle} onBack={back} />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollArea contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.windows, stacked && styles.windowsStacked]}>
           <ArchWindow
             label={copy.setupSingle}
@@ -88,7 +89,7 @@ export default function Setup() {
               ))}
           </View>
         )}
-      </ScrollView>
+      </ScrollArea>
       {game && players !== null && namesComplete && (
         <View style={styles.footer}>
           <Button

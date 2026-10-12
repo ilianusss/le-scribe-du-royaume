@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { ChevronRight, Skull } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Mode } from '@/data/cards';
 import { copy } from '@/ui/copy';
@@ -9,6 +9,7 @@ import { FamilyIcon } from '@/ui/FamilyIcon';
 import { Header } from '@/ui/Header';
 import type { PressState } from '@/ui/pressable';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { useSession } from '@/ui/SessionProvider';
 import { colors, familyColors, fonts, radius, spacing, type } from '@/ui/theme';
 
@@ -39,7 +40,7 @@ export default function Modules() {
   return (
     <Screen>
       <Header title={copy.modulesTitle} onBack={back} />
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollArea contentContainerStyle={styles.content}>
         <Text style={styles.heading}>{copy.modulesQuestion}</Text>
         <View style={styles.list}>
           {option(
@@ -64,7 +65,7 @@ export default function Modules() {
             <Skull color={colors.velin} size={24} strokeWidth={1.75} />,
           )}
         </View>
-      </ScrollView>
+      </ScrollArea>
     </Screen>
   );
 }

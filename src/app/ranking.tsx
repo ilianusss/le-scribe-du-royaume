@@ -1,7 +1,7 @@
 import { Redirect, router } from 'expo-router';
 import { ChevronRight, Crown } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { playerName, standings, type Game } from '@/flow/game';
 import { scoreSession } from '@/flow/session';
@@ -10,6 +10,7 @@ import { copy, number } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import type { PressState } from '@/ui/pressable';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { useSession } from '@/ui/SessionProvider';
 import { colors, fonts, minTap, radius, spacing, type } from '@/ui/theme';
 import { Vitrail } from '@/ui/Vitrail';
@@ -43,7 +44,7 @@ export default function Ranking() {
           router.back();
         }}
       />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content}>
         <Vitrail
           slots={winnerResult.cards.map((trace) => ({
             cardId: trace.id,
@@ -104,7 +105,7 @@ export default function Ranking() {
             }}
           />
         </View>
-      </ScrollView>
+      </ScrollArea>
     </Screen>
   );
 }

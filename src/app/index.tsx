@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ArchWindow, WINDOW_HEIGHT, WINDOW_WIDTH } from '@/ui/ArchWindow';
 import { copy } from '@/ui/copy';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { useSession } from '@/ui/SessionProvider';
 import { colors, gutter, maxWidth, spacing, type } from '@/ui/theme';
 
@@ -41,7 +42,7 @@ export default function Accueil() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollArea contentContainerStyle={styles.content}>
         <View style={styles.heading}>
           <Text style={styles.title} accessibilityRole="header">
             {copy.appTitle}
@@ -56,7 +57,7 @@ export default function Accueil() {
           })}
           {window(copy.homeExt, copy.homeExtSub, () => router.push('/modules'), '☠')}
         </View>
-      </ScrollView>
+      </ScrollArea>
     </Screen>
   );
 }

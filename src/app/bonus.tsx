@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID } from '@/data/cards';
 import { bonusPool, bonusSources, nextStep } from '@/flow/steps';
@@ -9,6 +9,7 @@ import { CardSearch } from '@/ui/CardSearch';
 import { copy, SOURCE_WITH_ARTICLE } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, radius, spacing, type } from '@/ui/theme';
@@ -39,7 +40,7 @@ export default function Bonus() {
           { cardId: session.bonusCard ?? undefined, dashedColor: colors.lumiere },
         ]}
       />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.subtitle}>{subtitle}</Text>
         {bonus ? (
           <>
@@ -66,7 +67,7 @@ export default function Bonus() {
             valueOf={cardValue}
           />
         )}
-      </ScrollView>
+      </ScrollArea>
       <View style={styles.footer}>
         {bonus ? (
           <Button label={label} onPress={() => goNext(session, 'BONUS')} />

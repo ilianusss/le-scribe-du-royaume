@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { CARDS_BY_ID } from '@/data/cards';
 import type { CardChoice } from '@/flow/session';
@@ -10,6 +10,7 @@ import { CardSearch } from '@/ui/CardSearch';
 import { copy } from '@/ui/copy';
 import { Header } from '@/ui/Header';
 import { Screen } from '@/ui/Screen';
+import { ScrollArea } from '@/ui/ScrollArea';
 import { goBack, goNext, useSession } from '@/ui/SessionProvider';
 import { SuggestionRow } from '@/ui/SuggestionRow';
 import { colors, fonts, radius, spacing } from '@/ui/theme';
@@ -85,7 +86,7 @@ export default function Jokers() {
     <Screen>
       <Header title={copy.jokersTitle} onBack={() => goBack(session, 'JOKERS')} />
       <Vitrail slots={finalHand(session).map((cardId) => ({ cardId, copyOf: copied(cardId as JokerId) }))} />
-      <ScrollView style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollArea style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {jokers.map((joker) => {
           const choice = session.jokerChoices[joker];
           return (
@@ -95,7 +96,7 @@ export default function Jokers() {
             </View>
           );
         })}
-      </ScrollView>
+      </ScrollArea>
       {canContinue(session, 'JOKERS') && (
         <View style={styles.footer}>
           <Button label={label} onPress={() => goNext(session, 'JOKERS')} />
